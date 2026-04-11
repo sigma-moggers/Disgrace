@@ -1,0 +1,2258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Disgrace</title>
+  <style>
+    :root {
+      --bg: #050507;
+      --panel: rgba(12, 12, 18, 0.78);
+      --line: rgba(255, 90, 90, 0.32);
+      --text: #ece3de;
+      --muted: #9d8d86;
+      --accent: #ef4f4f;
+      --accent-soft: rgba(239, 79, 79, 0.18);
+      --warn: #ffcf70;
+      --good: #8ff0b4;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at top, rgba(120, 20, 20, 0.18), transparent 28%),
+        radial-gradient(circle at bottom, rgba(20, 20, 45, 0.35), transparent 32%),
+        var(--bg);
+      color: var(--text);
+      font-family: Georgia, "Times New Roman", serif;
+    }
+
+    body {
+      position: relative;
+      user-select: none;
+    }
+
+    canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+      background: transparent;
+    }
+
+    #hud,
+    #overlay,
+    #menu {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+
+    #hud {
+      padding: 22px;
+      display: grid;
+      grid-template-columns: 300px 1fr 300px;
+      grid-template-rows: auto 1fr auto;
+      gap: 14px;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35), inset 0 0 30px rgba(255, 255, 255, 0.02);
+      backdrop-filter: blur(10px);
+    }
+
+    #statusPanel,
+    #intelPanel,
+    #boxPanel,
+    #messagePanel {
+      padding: 14px 16px;
+    }
+
+    #statusPanel {
+      grid-column: 1;
+      grid-row: 1;
+    }
+
+    #intelPanel {
+      grid-column: 3;
+      grid-row: 1 / span 2;
+      align-self: start;
+    }
+
+    #boxPanel {
+      grid-column: 1;
+      grid-row: 2;
+      align-self: start;
+    }
+
+    #messagePanel {
+      grid-column: 2;
+      grid-row: 3;
+      justify-self: center;
+      width: min(760px, 100%);
+      text-align: center;
+    }
+
+    .label {
+      font-size: 11px;
+      letter-spacing: 0.28em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+
+    .valueRow {
+      margin-bottom: 12px;
+    }
+
+    .valueLine {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      font-size: 13px;
+      margin-bottom: 6px;
+    }
+
+    .bar {
+      height: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.04);
+      overflow: hidden;
+      position: relative;
+    }
+
+    .barFill {
+      height: 100%;
+      width: 50%;
+      background:
+        linear-gradient(90deg, rgba(255, 255, 255, 0.14), transparent),
+        linear-gradient(90deg, #7f1c1c, #ff5a5a);
+      transform-origin: left;
+      transition: width 80ms linear;
+    }
+
+    .barFill.stamina {
+      background:
+        linear-gradient(90deg, rgba(255, 255, 255, 0.16), transparent),
+        linear-gradient(90deg, #73634b, #d7b683);
+    }
+
+    .barFill.threat {
+      background:
+        linear-gradient(90deg, rgba(255, 255, 255, 0.16), transparent),
+        linear-gradient(90deg, #433a57, #9a81ff);
+    }
+
+    #capturePrompt {
+      position: absolute;
+      left: 50%;
+      bottom: 14%;
+      transform: translateX(-50%);
+      width: min(560px, calc(100% - 40px));
+      padding: 14px 18px;
+      text-align: center;
+      opacity: 0;
+      transition: opacity 120ms linear;
+      font-size: 14px;
+      letter-spacing: 0.04em;
+    }
+
+    #capturePrompt.visible {
+      opacity: 1;
+    }
+
+    #boxWidget {
+      width: 148px;
+      height: 148px;
+      margin: 10px auto 14px;
+      border: 2px solid rgba(255, 95, 95, 0.7);
+      background:
+        radial-gradient(circle at 50% 35%, rgba(255, 122, 122, 0.2), transparent 34%),
+        linear-gradient(135deg, rgba(255, 0, 0, 0.18), rgba(20, 0, 0, 0.55));
+      box-shadow:
+        inset 0 0 30px rgba(255, 60, 60, 0.18),
+        0 0 30px rgba(255, 40, 40, 0.14);
+      position: relative;
+      transform-origin: center;
+    }
+
+    #boxWidget::before,
+    #boxWidget::after {
+      content: "";
+      position: absolute;
+      inset: 12px;
+      border: 1px solid rgba(255, 180, 180, 0.14);
+    }
+
+    #boxWidget::after {
+      inset: 24px;
+    }
+
+    #boxGlyph {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      font-size: 48px;
+      color: rgba(255, 210, 210, 0.7);
+      text-shadow: 0 0 12px rgba(255, 100, 100, 0.35);
+    }
+
+    #containedList,
+    #powerList,
+    #effectList,
+    #clueList {
+      display: grid;
+      gap: 7px;
+      font-size: 13px;
+      max-height: 220px;
+      overflow: auto;
+      padding-right: 4px;
+    }
+
+    .listItem {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 8px 10px;
+      background: rgba(255, 255, 255, 0.03);
+      border-left: 2px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .listItem strong {
+      font-weight: 600;
+      color: #f3d7d7;
+    }
+
+    #crosshair {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 28px;
+      height: 28px;
+      transform: translate(-50%, -50%);
+      opacity: 0.82;
+    }
+
+    #crosshair::before,
+    #crosshair::after {
+      content: "";
+      position: absolute;
+      background: rgba(255, 230, 230, 0.72);
+      box-shadow: 0 0 10px rgba(255, 120, 120, 0.32);
+    }
+
+    #crosshair::before {
+      left: 13px;
+      top: 0;
+      width: 2px;
+      height: 28px;
+    }
+
+    #crosshair::after {
+      top: 13px;
+      left: 0;
+      width: 28px;
+      height: 2px;
+    }
+
+    #glitchOverlay,
+    #vignette,
+    #flashOverlay {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      mix-blend-mode: screen;
+    }
+
+    #glitchOverlay {
+      background:
+        repeating-linear-gradient(
+          180deg,
+          rgba(255, 255, 255, 0.02) 0,
+          rgba(255, 255, 255, 0.02) 1px,
+          transparent 2px,
+          transparent 5px
+        );
+      opacity: 0.08;
+    }
+
+    #vignette {
+      background: radial-gradient(circle, transparent 40%, rgba(0, 0, 0, 0.72) 100%);
+      mix-blend-mode: multiply;
+    }
+
+    #flashOverlay {
+      background: rgba(255, 40, 40, 0.14);
+      opacity: 0;
+      transition: opacity 80ms linear;
+    }
+
+    #menu {
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      background:
+        radial-gradient(circle at center, rgba(80, 0, 0, 0.25), transparent 32%),
+        rgba(3, 3, 6, 0.84);
+      pointer-events: auto;
+    }
+
+    #menu.hidden {
+      display: none;
+    }
+
+    #menuCard {
+      width: min(760px, 100%);
+      padding: 28px;
+      border: 1px solid rgba(255, 90, 90, 0.28);
+      background:
+        linear-gradient(135deg, rgba(22, 18, 18, 0.96), rgba(8, 8, 12, 0.96));
+      box-shadow: 0 30px 90px rgba(0, 0, 0, 0.45);
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: clamp(44px, 7vw, 78px);
+      line-height: 0.9;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      color: #f4dddd;
+    }
+
+    .subtitle {
+      color: #c1abaa;
+      font-size: 15px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      margin-bottom: 18px;
+    }
+
+    .menuText {
+      color: #d6cbca;
+      line-height: 1.6;
+      font-size: 15px;
+      max-width: 60ch;
+    }
+
+    .menuGrid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      margin: 20px 0 24px;
+    }
+
+    .menuBox {
+      padding: 14px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      font-size: 14px;
+      line-height: 1.55;
+    }
+
+    button {
+      pointer-events: auto;
+      appearance: none;
+      border: 1px solid rgba(255, 110, 110, 0.5);
+      background:
+        linear-gradient(180deg, rgba(130, 20, 20, 0.92), rgba(70, 8, 8, 0.96));
+      color: #fff2f2;
+      padding: 14px 22px;
+      font: inherit;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: transform 120ms ease, box-shadow 120ms ease;
+      box-shadow: 0 10px 24px rgba(110, 0, 0, 0.35);
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 14px 28px rgba(110, 0, 0, 0.45);
+    }
+
+    .muted {
+      color: var(--muted);
+    }
+
+    @media (max-width: 980px) {
+      #hud {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto auto auto auto;
+      }
+
+      #statusPanel,
+      #boxPanel,
+      #intelPanel,
+      #messagePanel {
+        grid-column: 1;
+      }
+
+      #statusPanel {
+        grid-row: 1;
+      }
+
+      #boxPanel {
+        grid-row: 2;
+      }
+
+      #intelPanel {
+        grid-row: 3;
+      }
+
+      #messagePanel {
+        grid-row: 4;
+      }
+
+      .menuGrid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="game"></canvas>
+
+  <div id="overlay">
+    <div id="crosshair"></div>
+    <div id="capturePrompt" class="panel"></div>
+    <div id="glitchOverlay"></div>
+    <div id="vignette"></div>
+    <div id="flashOverlay"></div>
+  </div>
+
+  <div id="hud">
+    <div id="statusPanel" class="panel">
+      <div class="label">Status</div>
+      <div class="valueRow">
+        <div class="valueLine"><span>Containment Stability</span><span id="stabilityValue">100%</span></div>
+        <div class="bar"><div id="stabilityBar" class="barFill"></div></div>
+      </div>
+      <div class="valueRow">
+        <div class="valueLine"><span>Stamina</span><span id="staminaValue">100%</span></div>
+        <div class="bar"><div id="staminaBar" class="barFill stamina"></div></div>
+      </div>
+      <div class="valueRow">
+        <div class="valueLine"><span>Threat Pressure</span><span id="threatValue">0%</span></div>
+        <div class="bar"><div id="threatBar" class="barFill threat"></div></div>
+      </div>
+      <div class="valueLine"><span>Contained</span><span id="countValue">0 / 10</span></div>
+      <div class="valueLine"><span>Storage</span><span id="storageValue">localStorage</span></div>
+      <div class="valueLine"><span>Escape Risk</span><span id="escapeValue">none</span></div>
+      <div class="valueLine"><span>Run Time</span><span id="timeValue">00:00</span></div>
+    </div>
+
+    <div id="boxPanel" class="panel">
+      <div class="label">Red Box</div>
+      <div id="boxWidget">
+        <div id="boxGlyph">▣</div>
+      </div>
+      <div class="valueLine"><span>Hold `F` to stabilize</span><span id="boxStateText">Stable</span></div>
+      <div class="muted" id="boxHint">Containment is calm. Every capture sharpens your power and weakens the box.</div>
+    </div>
+
+    <div id="intelPanel" class="panel">
+      <div class="label">Intel</div>
+      <div class="valueLine"><span>Nearest anomaly</span><span id="targetName">None</span></div>
+      <div class="muted" id="targetHint">Sweep the maze, keep moving, and align the crosshair to bind an entity into the box.</div>
+      <div class="label" style="margin-top: 16px;">Contained Entities</div>
+      <div id="containedList"></div>
+      <div class="label" style="margin-top: 16px;">Granted Powers</div>
+      <div id="powerList"></div>
+      <div class="label" style="margin-top: 16px;">Active Effects</div>
+      <div id="effectList"></div>
+      <div class="label" style="margin-top: 16px;">Recovered Clues</div>
+      <div id="clueList"></div>
+    </div>
+
+    <div id="messagePanel" class="panel">Press `Start Run`, click the screen, and move with `WASD`. Sprint with `Shift`. Capture with `E`.</div>
+  </div>
+
+  <div id="menu">
+    <div id="menuCard">
+      <div class="subtitle">Single-file psychological horror prototype</div>
+      <h1>Disgrace</h1>
+      <div class="menuText">
+        You hunt rogue entities to protect humanity. They were not always dangerous. They began as harmless remainders, scraps of reality repeating quiet, meaningless actions without awareness.
+        Then some of them changed. They reacted. They learned. They broke pattern. Now every capture buys time, but every containment teaches the others how to become something worse.
+      </div>
+      <div class="menuGrid">
+        <div class="menuBox">
+          `E` captures when an entity is in sight and within range. Every capture grants a power, raises the system pressure, and reveals more of what these things are becoming.
+        </div>
+        <div class="menuBox">
+          `F` stabilizes the Red Box but slows you and burns stamina. The box does not cure rogue entities. It only forces them back into a temporary, fragile state.
+        </div>
+        <div class="menuBox">
+          If enough entities go rogue, there will be nothing left to contain them and nothing left to protect. Watch the recovered clues as the run deepens.
+        </div>
+        <div class="menuBox">
+          Firebase is optional. If you define `window.__DISGRACE_FIREBASE_CONFIG` before this script loads, the game attempts anonymous auth and remote save sync. If it fails, the run continues on `localStorage`.
+        </div>
+      </div>
+      <button id="startButton">Start Run</button>
+    </div>
+  </div>
+
+  <script>
+    (() => {
+      "use strict";
+
+      const TAU = Math.PI * 2;
+      const FOV = Math.PI / 3;
+      const WORLD_SIZE = 19;
+      const ENTITY_COUNT = 10;
+      const MAX_CAPTURE_RANGE = 1.85;
+      const PLAYER_RADIUS = 0.2;
+      const SAVE_KEY = "disgrace-save-v1";
+
+      const ENTITY_LIBRARY = [
+        {
+          id: "nocturne",
+          name: "Nocturne",
+          color: "#8da5ff",
+          power: "Night vision",
+          detail: "Fast in darkness, weakened by light. Stay near illumination to cut its speed.",
+        },
+        {
+          id: "velour",
+          name: "Velour",
+          color: "#dcd6d6",
+          power: "Sound suppression immunity",
+          detail: "Emits nothing. You only know it exists when you are looking directly at it.",
+        },
+        {
+          id: "penance",
+          name: "Penance",
+          color: "#ff7e7e",
+          power: "Mistake forgiveness",
+          detail: "Feeds on hesitation, failed catches, and bad turns. Clean movement keeps it slower.",
+        },
+        {
+          id: "lament",
+          name: "Lament",
+          color: "#7bb7c8",
+          power: "Slow resistance",
+          detail: "Leaves burdensome zones that drag your movement and your stamina recovery.",
+        },
+        {
+          id: "silhouette",
+          name: "Silhouette",
+          color: "#2d2d2d",
+          power: "Reveal hidden paths",
+          detail: "Only exists in the edge of sight. Looking at it directly makes it fold away.",
+        },
+        {
+          id: "eulogy",
+          name: "Eulogy",
+          color: "#b892ff",
+          power: "Detect fake trails",
+          detail: "Records your routes and replays them back as lies.",
+        },
+        {
+          id: "crescent",
+          name: "Crescent",
+          color: "#c6e4ff",
+          power: "See phase timing",
+          detail: "Visible only in part of its cycle. It keeps moving even when hidden.",
+        },
+        {
+          id: "obsidian",
+          name: "Obsidian",
+          color: "#a77d57",
+          power: "Hazard immunity",
+          detail: "Punishes straight pursuit with spike trails and shattering fragments.",
+        },
+        {
+          id: "vespers",
+          name: "Vespers",
+          color: "#eadfae",
+          power: "Teleport resistance",
+          detail: "Rush it and it vanishes away. Patience is the only clean catch.",
+        },
+        {
+          id: "relic",
+          name: "Relic",
+          color: "#e0a0e0",
+          power: "Predict positions",
+          detail: "Teleports between fixed nodes. Learn the route and intercept the pattern.",
+        },
+      ];
+
+      const CLUE_LIBRARY = [
+        {
+          id: "origins",
+          trigger: (game) => game.time > 8,
+          title: "Field Note 01",
+          text: "The first entities were harmless remainders, repeating small fragments of reality without awareness.",
+        },
+        {
+          id: "pattern_break",
+          trigger: (game) => game.stats.captures >= 1,
+          title: "Field Note 02",
+          text: "Rogue behavior begins when an entity reacts to interruption and breaks its old loop.",
+        },
+        {
+          id: "learning",
+          trigger: (game) => game.stats.captures >= 3,
+          title: "Field Note 03",
+          text: "Each successful capture seems to accelerate adaptation in the remaining entities, as if they are learning from observation.",
+        },
+        {
+          id: "box_truth",
+          trigger: (game) => game.box.stability < 55,
+          title: "Containment Memo",
+          text: "The Red Box does not heal rogue entities. It only forces temporary stability onto things that no longer obey stable rules.",
+        },
+        {
+          id: "spread",
+          trigger: (game) => game.box.stability < 28 || game.box.overload,
+          title: "Redacted Warning",
+          text: "If containment fails, escapees do not return unchanged. They come back sharper, worse, more aware of the process.",
+        },
+        {
+          id: "endstate",
+          trigger: (game) => game.box.overload && game.stats.captures >= 6,
+          title: "Terminal Projection",
+          text: "This is not a hunt. It is an attempt to stop something spreading. If every entity goes rogue, nothing will remain capable of containing them.",
+        },
+      ];
+
+      const HUD = {
+        stabilityBar: document.getElementById("stabilityBar"),
+        staminaBar: document.getElementById("staminaBar"),
+        threatBar: document.getElementById("threatBar"),
+        stabilityValue: document.getElementById("stabilityValue"),
+        staminaValue: document.getElementById("staminaValue"),
+        threatValue: document.getElementById("threatValue"),
+        countValue: document.getElementById("countValue"),
+        storageValue: document.getElementById("storageValue"),
+        escapeValue: document.getElementById("escapeValue"),
+        timeValue: document.getElementById("timeValue"),
+        targetName: document.getElementById("targetName"),
+        targetHint: document.getElementById("targetHint"),
+        containedList: document.getElementById("containedList"),
+        powerList: document.getElementById("powerList"),
+        effectList: document.getElementById("effectList"),
+        clueList: document.getElementById("clueList"),
+        messagePanel: document.getElementById("messagePanel"),
+        capturePrompt: document.getElementById("capturePrompt"),
+        boxWidget: document.getElementById("boxWidget"),
+        boxStateText: document.getElementById("boxStateText"),
+        boxHint: document.getElementById("boxHint"),
+        flashOverlay: document.getElementById("flashOverlay"),
+        menu: document.getElementById("menu"),
+        startButton: document.getElementById("startButton"),
+      };
+
+      const canvas = document.getElementById("game");
+      const ctx = canvas.getContext("2d");
+
+      function clamp(value, min, max) {
+        return Math.max(min, Math.min(max, value));
+      }
+
+      function lerp(a, b, t) {
+        return a + (b - a) * t;
+      }
+
+      function wrapAngle(value) {
+        while (value <= -Math.PI) value += TAU;
+        while (value > Math.PI) value -= TAU;
+        return value;
+      }
+
+      function distance(a, b) {
+        return Math.hypot(a.x - b.x, a.y - b.y);
+      }
+
+      function formatTime(seconds) {
+        const mins = String(Math.floor(seconds / 60)).padStart(2, "0");
+        const secs = String(Math.floor(seconds % 60)).padStart(2, "0");
+        return mins + ":" + secs;
+      }
+
+      function makeRng(seed) {
+        let value = seed >>> 0;
+        return () => {
+          value = (value * 1664525 + 1013904223) >>> 0;
+          return value / 0xffffffff;
+        };
+      }
+
+      function choose(list, rng) {
+        return list[Math.floor(rng() * list.length)];
+      }
+
+      function makeGrid(size) {
+        const grid = Array.from({ length: size }, () => Array(size).fill(1));
+        const stack = [{ x: 1, y: 1 }];
+        const rng = makeRng((Date.now() & 0xffffffff) ^ 0xdecafbad);
+        grid[1][1] = 0;
+
+        while (stack.length) {
+          const current = stack[stack.length - 1];
+          const options = [
+            { x: current.x + 2, y: current.y },
+            { x: current.x - 2, y: current.y },
+            { x: current.x, y: current.y + 2 },
+            { x: current.x, y: current.y - 2 },
+          ].filter((cell) =>
+            cell.x > 0 &&
+            cell.y > 0 &&
+            cell.x < size - 1 &&
+            cell.y < size - 1 &&
+            grid[cell.y][cell.x] === 1
+          );
+
+          if (!options.length) {
+            stack.pop();
+            continue;
+          }
+
+          const next = choose(options, rng);
+          const mx = (current.x + next.x) / 2;
+          const my = (current.y + next.y) / 2;
+          grid[my][mx] = 0;
+          grid[next.y][next.x] = 0;
+          stack.push(next);
+        }
+
+        for (let i = 0; i < 18; i += 1) {
+          const x = 1 + Math.floor(rng() * (size - 2));
+          const y = 1 + Math.floor(rng() * (size - 2));
+          grid[y][x] = 0;
+        }
+
+        return { grid, rng };
+      }
+
+      function findFloorCells(grid) {
+        const cells = [];
+        for (let y = 1; y < grid.length - 1; y += 1) {
+          for (let x = 1; x < grid[y].length - 1; x += 1) {
+            if (grid[y][x] === 0) cells.push({ x, y });
+          }
+        }
+        return cells;
+      }
+
+      function loadScript(src) {
+        return new Promise((resolve, reject) => {
+          const script = document.createElement("script");
+          script.src = src;
+          script.async = true;
+          script.onload = () => resolve();
+          script.onerror = () => reject(new Error("Failed to load " + src));
+          document.head.appendChild(script);
+        });
+      }
+
+      const StorageBridge = {
+        mode: "localStorage",
+        ready: false,
+        cache: null,
+        firebase: null,
+        async init() {
+          this.cache = this.readLocal();
+          const config = window.__DISGRACE_FIREBASE_CONFIG;
+          if (!config) {
+            this.ready = true;
+            return this.cache;
+          }
+
+          try {
+            if (!window.firebase) {
+              await loadScript("https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js");
+              await loadScript("https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js");
+              await loadScript("https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js");
+              await loadScript("https://www.gstatic.com/firebasejs/10.12.5/firebase-database-compat.js");
+            }
+
+            if (!window.firebase.apps.length) {
+              window.firebase.initializeApp(config);
+            }
+
+            const auth = window.firebase.auth();
+            await auth.signInAnonymously();
+            const user = auth.currentUser || { uid: "anonymous" };
+            const firestore = window.firebase.firestore();
+            const database = window.firebase.database();
+            this.firebase = {
+              uid: user.uid,
+              firestoreDoc: firestore.collection("disgraceSaves").doc(user.uid),
+              realtimeRef: database.ref("disgraceSaves/" + user.uid),
+            };
+
+            const [firestoreSnap, realtimeSnap] = await Promise.allSettled([
+              this.firebase.firestoreDoc.get(),
+              this.firebase.realtimeRef.get(),
+            ]);
+
+            const remote = {};
+            if (firestoreSnap.status === "fulfilled" && firestoreSnap.value.exists) {
+              Object.assign(remote, firestoreSnap.value.data());
+            }
+            if (realtimeSnap.status === "fulfilled" && realtimeSnap.value.exists()) {
+              Object.assign(remote, realtimeSnap.value.val());
+            }
+
+            this.cache = Object.assign({}, this.cache || {}, remote || {});
+            this.mode = "Firebase + localStorage";
+          } catch (error) {
+            console.warn("Firebase unavailable, continuing locally.", error);
+            this.mode = "localStorage";
+          }
+
+          this.ready = true;
+          return this.cache;
+        },
+        readLocal() {
+          try {
+            const raw = localStorage.getItem(SAVE_KEY);
+            return raw ? JSON.parse(raw) : {};
+          } catch (error) {
+            console.warn("localStorage read failed", error);
+            return {};
+          }
+        },
+        async save(payload) {
+          this.cache = Object.assign({}, this.cache || {}, payload || {});
+          try {
+            localStorage.setItem(SAVE_KEY, JSON.stringify(this.cache));
+          } catch (error) {
+            console.warn("localStorage save failed", error);
+          }
+
+          if (!this.firebase) return;
+
+          try {
+            await Promise.allSettled([
+              this.firebase.firestoreDoc.set(this.cache, { merge: true }),
+              this.firebase.realtimeRef.update(this.cache),
+            ]);
+          } catch (error) {
+            console.warn("Remote save failed", error);
+          }
+        },
+      };
+
+      class AudioSystem {
+        constructor() {
+          this.ctx = null;
+          this.master = null;
+          this.filter = null;
+          this.distortion = null;
+          this.drone = null;
+          this.droneGain = null;
+          this.whisper = null;
+          this.whisperGain = null;
+          this.pulse = null;
+          this.pulseGain = null;
+          this.noise = null;
+          this.noiseFilter = null;
+          this.noiseGain = null;
+          this.started = false;
+        }
+
+        async start() {
+          if (this.started) {
+            if (this.ctx && this.ctx.state === "suspended") await this.ctx.resume();
+            return;
+          }
+
+          const AudioCtx = window.AudioContext || window.webkitAudioContext;
+          if (!AudioCtx) return;
+
+          this.ctx = new AudioCtx();
+          this.master = this.ctx.createGain();
+          this.filter = this.ctx.createBiquadFilter();
+          this.distortion = this.ctx.createWaveShaper();
+          this.filter.type = "lowpass";
+          this.filter.frequency.value = 1800;
+          this.master.gain.value = 0.22;
+          this.distortion.curve = this.makeDistortionCurve(32);
+          this.master.connect(this.distortion);
+          this.distortion.connect(this.filter);
+          this.filter.connect(this.ctx.destination);
+
+          this.drone = this.ctx.createOscillator();
+          this.drone.type = "sawtooth";
+          this.drone.frequency.value = 52;
+          this.droneGain = this.ctx.createGain();
+          this.droneGain.gain.value = 0.0001;
+          this.drone.connect(this.droneGain);
+          this.droneGain.connect(this.master);
+
+          this.whisper = this.ctx.createOscillator();
+          this.whisper.type = "triangle";
+          this.whisper.frequency.value = 310;
+          this.whisperGain = this.ctx.createGain();
+          this.whisperGain.gain.value = 0.0001;
+          this.whisper.connect(this.whisperGain);
+          this.whisperGain.connect(this.master);
+
+          this.pulse = this.ctx.createOscillator();
+          this.pulse.type = "sine";
+          this.pulse.frequency.value = 124;
+          this.pulseGain = this.ctx.createGain();
+          this.pulseGain.gain.value = 0.0001;
+          this.pulse.connect(this.pulseGain);
+          this.pulseGain.connect(this.master);
+
+          const buffer = this.ctx.createBuffer(1, this.ctx.sampleRate * 2, this.ctx.sampleRate);
+          const data = buffer.getChannelData(0);
+          for (let i = 0; i < data.length; i += 1) {
+            data[i] = (Math.random() * 2 - 1) * 0.16;
+          }
+          this.noise = this.ctx.createBufferSource();
+          this.noise.buffer = buffer;
+          this.noise.loop = true;
+          this.noiseFilter = this.ctx.createBiquadFilter();
+          this.noiseFilter.type = "bandpass";
+          this.noiseFilter.frequency.value = 740;
+          this.noiseGain = this.ctx.createGain();
+          this.noiseGain.gain.value = 0.0001;
+          this.noise.connect(this.noiseFilter);
+          this.noiseFilter.connect(this.noiseGain);
+          this.noiseGain.connect(this.master);
+
+          this.drone.start();
+          this.whisper.start();
+          this.pulse.start();
+          this.noise.start();
+          this.started = true;
+        }
+
+        makeDistortionCurve(amount) {
+          const k = typeof amount === "number" ? amount : 50;
+          const samples = 22050;
+          const curve = new Float32Array(samples);
+          const deg = Math.PI / 180;
+          for (let i = 0; i < samples; i += 1) {
+            const x = (i * 2) / samples - 1;
+            curve[i] = ((3 + k) * x * 20 * deg) / (Math.PI + k * Math.abs(x));
+          }
+          return curve;
+        }
+
+        pulseEvent(freq, duration, volume, type) {
+          if (!this.ctx || !this.master) return;
+          const now = this.ctx.currentTime;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = type || "sine";
+          osc.frequency.value = freq;
+          gain.gain.setValueAtTime(volume, now);
+          gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+          osc.connect(gain);
+          gain.connect(this.master);
+          osc.start(now);
+          osc.stop(now + duration);
+        }
+
+        update(game) {
+          if (!this.started || !this.ctx) return;
+
+          const now = this.ctx.currentTime;
+          const stress = clamp(game.threatPressure, 0, 1);
+          const nocturne = game.findEntity("nocturne");
+          const lament = game.findEntity("lament");
+          const velour = game.findEntity("velour");
+
+          const nocturneNear = nocturne && !nocturne.captured ? clamp(1 - distance(game.player, nocturne) / 8, 0, 1) : 0;
+          const lamentNear = lament && !lament.captured ? clamp(1 - distance(game.player, lament) / 7, 0, 1) : 0;
+          const silence = velour && !velour.captured && distance(game.player, velour) < velour.silenceRadius
+            ? (game.hasPower("velour") ? 0.38 : 0.08)
+            : 1;
+          const overload = game.box.overload ? 1 : 0;
+          const distortion = clamp((100 - game.box.stability) / 100 + overload * 0.5, 0, 1);
+
+          this.master.gain.linearRampToValueAtTime((0.16 + stress * 0.12) * silence, now + 0.08);
+          this.filter.frequency.linearRampToValueAtTime(lerp(2200, 640, stress), now + 0.08);
+          this.drone.frequency.linearRampToValueAtTime(50 + stress * 18 + nocturneNear * 26, now + 0.08);
+          this.droneGain.gain.linearRampToValueAtTime(0.03 + stress * 0.07 + nocturneNear * 0.05, now + 0.08);
+          this.whisper.frequency.linearRampToValueAtTime(280 + nocturneNear * 80 + Math.sin(game.time * 0.9) * 14, now + 0.08);
+          this.whisperGain.gain.linearRampToValueAtTime(0.005 + nocturneNear * 0.03, now + 0.08);
+          this.pulse.frequency.linearRampToValueAtTime(118 + lamentNear * 18 + stress * 44, now + 0.08);
+          this.pulseGain.gain.linearRampToValueAtTime(0.01 + lamentNear * 0.024 + stress * 0.03, now + 0.08);
+          this.noiseGain.gain.linearRampToValueAtTime((0.004 + distortion * 0.022) * silence, now + 0.08);
+          this.noiseFilter.frequency.linearRampToValueAtTime(680 + overload * 520 + stress * 240, now + 0.08);
+          this.distortion.curve = this.makeDistortionCurve(24 + distortion * 260);
+        }
+      }
+
+      class Game {
+        constructor() {
+          this.audio = new AudioSystem();
+          this.keys = {};
+          this.mouseLocked = false;
+          this.lastFrame = 0;
+          this.running = false;
+          this.time = 0;
+          this.flashTimer = 0;
+          this.gameOver = false;
+          this.endedBy = "";
+          this.messageTimer = 0;
+          this.message = "";
+          this.debug = {};
+
+          this.world = makeGrid(WORLD_SIZE);
+          this.grid = this.world.grid;
+          this.rng = this.world.rng;
+          this.floorCells = findFloorCells(this.grid);
+          this.lightNodes = this.floorCells.filter((_, index) => index % 8 === 0).slice(0, 14);
+          this.hiddenMarks = this.floorCells.filter((_, index) => index % 9 === 0).slice(0, 10);
+
+          this.player = {
+            x: 1.5,
+            y: 1.5,
+            angle: 0,
+            stamina: 100,
+            fear: 0,
+            hesitation: 0,
+            lastCell: { x: 1, y: 1 },
+            progressCellTime: 0,
+            sprinting: false,
+            steadyTime: 0,
+          };
+
+          this.box = {
+            stability: 100,
+            stateText: "Stable",
+            overload: false,
+            broken: false,
+            breakTimer: 0,
+            lastEscapeAt: 0,
+            shake: 0,
+          };
+
+          this.stats = {
+            missedCaptures: 0,
+            mistakes: 0,
+            captures: 0,
+          };
+
+          this.save = {
+            bestCaptures: 0,
+            totalRuns: 0,
+            powersUnlocked: [],
+            seenEntities: [],
+            discoveredClues: [],
+          };
+
+          this.entities = [];
+          this.hazards = [];
+          this.heavyZones = [];
+          this.ghostTrails = [];
+          this.playerTrails = [];
+          this.rays = [];
+          this.visibleTarget = null;
+          this.threatPressure = 0;
+          this.statusEffects = [];
+          this.discoveredClues = [];
+
+          this.resize();
+          window.addEventListener("resize", () => this.resize());
+          window.addEventListener("keydown", (event) => this.onKey(event, true));
+          window.addEventListener("keyup", (event) => this.onKey(event, false));
+          canvas.addEventListener("click", () => this.lockPointer());
+          document.addEventListener("pointerlockchange", () => {
+            this.mouseLocked = document.pointerLockElement === canvas;
+          });
+          window.addEventListener("mousemove", (event) => {
+            if (!this.mouseLocked || !this.running || this.gameOver) return;
+            this.player.angle = wrapAngle(this.player.angle + event.movementX * 0.0024);
+          });
+
+          HUD.startButton.addEventListener("click", async () => {
+            await this.start();
+          });
+        }
+
+        async boot() {
+          const cached = await StorageBridge.init();
+          this.save = Object.assign({}, this.save, cached || {});
+          HUD.storageValue.textContent = StorageBridge.mode;
+          this.resetRun();
+          this.drawSplash();
+        }
+
+        async start() {
+          HUD.menu.classList.add("hidden");
+          await this.audio.start();
+          this.resetRun();
+          this.running = true;
+          this.lockPointer();
+          this.message = "The containment field wakes with you.";
+          this.messageTimer = 5;
+          requestAnimationFrame((time) => this.frame(time));
+        }
+
+        resetRun() {
+          this.lastFrame = 0;
+          this.time = 0;
+          this.gameOver = false;
+          this.endedBy = "";
+          this.flashTimer = 0;
+          this.hazards = [];
+          this.heavyZones = [];
+          this.ghostTrails = [];
+          this.playerTrails = [];
+          this.threatPressure = 0;
+          this.statusEffects = [];
+          this.discoveredClues = [...(this.save.discoveredClues || [])];
+          this.box = {
+            stability: 100,
+            stateText: "Stable",
+            overload: false,
+            broken: false,
+            breakTimer: 0,
+            lastEscapeAt: -999,
+            shake: 0,
+          };
+          this.stats = {
+            missedCaptures: 0,
+            mistakes: 0,
+            captures: 0,
+          };
+          this.player = {
+            x: 1.5,
+            y: 1.5,
+            angle: 0,
+            stamina: 100,
+            fear: 0,
+            hesitation: 0,
+            lastCell: { x: 1, y: 1 },
+            progressCellTime: 0,
+            sprinting: false,
+            steadyTime: 0,
+          };
+
+          this.entities = ENTITY_LIBRARY.map((template, index) => {
+            const spawn = this.pickSpawn(index + 3);
+            const nodes = [spawn, this.pickSpawn(index + 19), this.pickSpawn(index + 41), this.pickSpawn(index + 71)];
+            return {
+              id: template.id,
+              name: template.name,
+              color: template.color,
+              power: template.power,
+              detail: template.detail,
+              x: spawn.x,
+              y: spawn.y,
+              dir: this.rng() * TAU,
+              speedBias: 0.9 + this.rng() * 0.5,
+              captured: false,
+              escaped: false,
+              visible: true,
+              phase: this.rng(),
+              lastTrailAt: 0,
+              lastHazardAt: 0,
+              lastZoneAt: 0,
+              silenceRadius: 3.6,
+              nodes,
+              nodeIndex: 0,
+              pauseTimer: 0,
+              patienceWindow: 0,
+              recentLook: 0,
+              ghostTimer: 0,
+              chaseTimer: 0,
+              seenDirectly: 0,
+              lastSeenAt: 0,
+            };
+          });
+
+          this.renderHud();
+        }
+
+        pickSpawn(offset) {
+          const candidates = this.floorCells.filter((cell) => Math.hypot(cell.x - 1, cell.y - 1) > 5 + (offset % 4));
+          const cell = candidates[(Math.floor(this.rng() * candidates.length) + offset) % candidates.length];
+          return { x: cell.x + 0.5, y: cell.y + 0.5 };
+        }
+
+        lockPointer() {
+          if (document.pointerLockElement !== canvas) {
+            canvas.requestPointerLock?.();
+          }
+        }
+
+        onKey(event, down) {
+          this.keys[event.key.toLowerCase()] = down;
+          if (down && event.key.toLowerCase() === "e") {
+            this.attemptCapture();
+          }
+        }
+
+        hasPower(id) {
+          const captured = this.entities.find((entity) => entity.id === id);
+          if (!captured || !captured.captured) return false;
+          if (!this.box.overload) return true;
+          return Math.sin(this.time * 2.4 + captured.name.length) > -0.25;
+        }
+
+        findEntity(id) {
+          return this.entities.find((entity) => entity.id === id);
+        }
+
+        isWall(x, y) {
+          const gx = Math.floor(x);
+          const gy = Math.floor(y);
+          return !this.grid[gy] || this.grid[gy][gx] !== 0;
+        }
+
+        collides(x, y) {
+          const points = [
+            { x: x - PLAYER_RADIUS, y: y - PLAYER_RADIUS },
+            { x: x + PLAYER_RADIUS, y: y - PLAYER_RADIUS },
+            { x: x - PLAYER_RADIUS, y: y + PLAYER_RADIUS },
+            { x: x + PLAYER_RADIUS, y: y + PLAYER_RADIUS },
+          ];
+          return points.some((point) => this.isWall(point.x, point.y));
+        }
+
+        frame(timestamp) {
+          if (!this.running) return;
+          if (!this.lastFrame) this.lastFrame = timestamp;
+          const dt = Math.min(0.033, (timestamp - this.lastFrame) / 1000 || 0.016);
+          this.lastFrame = timestamp;
+
+          if (!this.gameOver) {
+            this.update(dt);
+          } else {
+            this.draw(dt);
+          }
+
+          this.audio.update(this);
+          requestAnimationFrame((time) => this.frame(time));
+        }
+
+        update(dt) {
+          this.time += dt;
+          if (this.messageTimer > 0) this.messageTimer -= dt;
+          if (this.flashTimer > 0) this.flashTimer -= dt;
+
+          this.updatePlayer(dt);
+          this.updateEntities(dt);
+          this.updateContainment(dt);
+          this.updateEffects(dt);
+          this.updateClues();
+          this.computeVisibleTarget();
+          this.checkThreats();
+          this.draw(dt);
+          this.renderHud();
+
+          if (this.entities.every((entity) => entity.captured) && !this.box.broken) {
+            this.finishRun("All entities contained. The box still shakes.");
+          }
+        }
+
+        updateClues() {
+          for (const clue of CLUE_LIBRARY) {
+            if (this.discoveredClues.includes(clue.id)) continue;
+            if (!clue.trigger(this)) continue;
+            this.discoveredClues.push(clue.id);
+            this.save.discoveredClues = Array.from(new Set([...(this.save.discoveredClues || []), clue.id]));
+            this.pushMessage("Recovered clue: " + clue.title);
+            StorageBridge.save({ discoveredClues: this.save.discoveredClues });
+            break;
+          }
+        }
+
+        updatePlayer(dt) {
+          const turnLeft = this.keys["arrowleft"] || this.keys["q"];
+          const turnRight = this.keys["arrowright"];
+          if (turnLeft) this.player.angle = wrapAngle(this.player.angle - dt * 1.7);
+          if (turnRight) this.player.angle = wrapAngle(this.player.angle + dt * 1.7);
+
+          const forward = (this.keys["w"] ? 1 : 0) - (this.keys["s"] ? 1 : 0);
+          const strafe = (this.keys["d"] ? 1 : 0) - (this.keys["a"] ? 1 : 0);
+          const stabilizing = !!this.keys["f"];
+          const sprinting = !!this.keys["shift"] && this.player.stamina > 4 && forward > 0 && !stabilizing;
+          this.player.sprinting = sprinting;
+
+          const baseSpeed = sprinting ? 3.2 : 2.1;
+          let moveSpeed = baseSpeed;
+          if (stabilizing) moveSpeed *= 0.58;
+
+          let burden = 0;
+          for (const zone of this.heavyZones) {
+            const d = Math.hypot(this.player.x - zone.x, this.player.y - zone.y);
+            if (d < zone.radius) {
+              burden += (1 - d / zone.radius) * zone.strength;
+            }
+          }
+          if (burden > 0) {
+            const resist = this.hasPower("lament") ? 0.45 : 1;
+            moveSpeed *= clamp(1 - burden * 0.45 * resist, 0.48, 1);
+          }
+
+          const obsidianImmune = this.hasPower("obsidian");
+          for (const hazard of this.hazards) {
+            const d = Math.hypot(this.player.x - hazard.x, this.player.y - hazard.y);
+            if (d < hazard.radius && !obsidianImmune) {
+              moveSpeed *= 0.62;
+              this.box.stability -= dt * 1.8;
+            }
+          }
+
+          const moveAngle = Math.atan2(strafe, forward || 0.0001);
+          const moveAmount = Math.hypot(forward, strafe);
+          if (moveAmount > 0.05) {
+            const angle = this.player.angle + moveAngle;
+            const dx = Math.sin(angle) * moveSpeed * dt * Math.min(1, moveAmount);
+            const dy = Math.cos(angle) * moveSpeed * dt * Math.min(1, moveAmount);
+            const nextX = this.player.x + dx;
+            const nextY = this.player.y + dy;
+
+            let moved = false;
+            if (!this.collides(nextX, this.player.y)) {
+              this.player.x = nextX;
+              moved = true;
+            }
+            if (!this.collides(this.player.x, nextY)) {
+              this.player.y = nextY;
+              moved = true;
+            }
+
+            if (!moved) {
+              this.noteMistake(0.12, "The maze rejects the route.");
+            }
+
+            this.player.hesitation = 0;
+            this.player.steadyTime += dt;
+          } else {
+            this.player.hesitation += dt;
+            this.player.steadyTime = 0;
+          }
+
+          if (sprinting) {
+            this.player.stamina = Math.max(0, this.player.stamina - dt * 18);
+          } else if (stabilizing) {
+            this.player.stamina = Math.max(0, this.player.stamina - dt * 13);
+          } else {
+            let regen = 10;
+            if (burden > 0) regen *= clamp(1 - burden * 0.5, 0.35, 1);
+            this.player.stamina = Math.min(100, this.player.stamina + dt * regen);
+          }
+
+          const currentCell = { x: Math.floor(this.player.x), y: Math.floor(this.player.y) };
+          if (currentCell.x === this.player.lastCell.x && currentCell.y === this.player.lastCell.y) {
+            this.player.progressCellTime += dt;
+          } else {
+            this.player.progressCellTime = 0;
+            this.player.lastCell = currentCell;
+          }
+
+          if (this.player.progressCellTime > 3.4) {
+            this.noteMistake(0.18, "Penance remembers your hesitation.");
+            this.player.progressCellTime = 0;
+          }
+
+          if (!this.playerTrails.length || distance(this.player, this.playerTrails[this.playerTrails.length - 1]) > 0.55) {
+            this.playerTrails.push({ x: this.player.x, y: this.player.y, ttl: 15, fake: false });
+          }
+
+          this.player.fear = clamp(this.player.fear - dt * 6, 0, 100);
+          this.box.stability = clamp(this.box.stability, 0, 100);
+        }
+
+        updateEntities(dt) {
+          const freeEntities = this.entities.filter((entity) => !entity.captured);
+          const pressure = [];
+
+          for (const entity of freeEntities) {
+            const toPlayer = {
+              x: this.player.x - entity.x,
+              y: this.player.y - entity.y,
+            };
+            const dist = Math.hypot(toPlayer.x, toPlayer.y);
+            const dirToPlayer = Math.atan2(toPlayer.x, toPlayer.y);
+            const diff = wrapAngle(dirToPlayer - entity.dir);
+            entity.phase = (entity.phase + dt * (0.38 + this.stats.captures * 0.02)) % 1;
+            const viewAngle = wrapAngle(Math.atan2(entity.x - this.player.x, entity.y - this.player.y) - this.player.angle);
+            const lookingAt = Math.abs(viewAngle) < 0.14 && this.hasLineOfSight(this.player.x, this.player.y, entity.x, entity.y);
+            if (lookingAt) {
+              entity.seenDirectly += dt;
+              entity.lastSeenAt = this.time;
+            } else {
+              entity.seenDirectly = Math.max(0, entity.seenDirectly - dt * 1.5);
+            }
+
+            switch (entity.id) {
+              case "nocturne": {
+                const light = this.lightAt(entity.x, entity.y);
+                const speed = (light < 0.36 ? 1.8 : 0.6) * entity.speedBias * (1.25 + this.stats.captures * 0.04);
+                entity.dir = wrapAngle(lerp(entity.dir, dirToPlayer, dt * 1.9));
+                this.moveEntity(entity, speed * dt);
+                pressure.push(clamp(1 - dist / 10, 0, 1) * (light < 0.36 ? 1 : 0.5));
+                break;
+              }
+              case "velour": {
+                entity.silenceRadius = 3.6 + this.time * 0.03 + this.stats.captures * 0.08;
+                if (dist < 4) {
+                  entity.dir = wrapAngle(lerp(entity.dir, dirToPlayer + Math.PI * 0.35, dt * 2.2));
+                } else {
+                  entity.dir += Math.sin(this.time + entity.x) * dt * 0.6;
+                }
+                this.moveEntity(entity, (1.15 + this.stats.captures * 0.03) * dt);
+                pressure.push(clamp(1 - dist / 8, 0, 1) * 0.7);
+                break;
+              }
+              case "penance": {
+                const forgiveness = this.hasPower("penance") ? 3 : 0;
+                const mistakeLoad = Math.max(0, this.stats.mistakes - forgiveness);
+                const speed = (1.1 + mistakeLoad * 0.12) * (1 + this.stats.captures * 0.02);
+                entity.dir = wrapAngle(lerp(entity.dir, dirToPlayer, dt * 3));
+                this.moveEntity(entity, speed * dt);
+                pressure.push(clamp(1 - dist / 9, 0, 1) * clamp(0.4 + mistakeLoad * 0.08, 0.4, 1.4));
+                break;
+              }
+              case "lament": {
+                entity.dir = wrapAngle(lerp(entity.dir, dirToPlayer, dt * 1.4));
+                this.moveEntity(entity, (0.92 + this.stats.captures * 0.03) * dt);
+                if (this.time - entity.lastZoneAt > 1.7) {
+                  entity.lastZoneAt = this.time;
+                  this.heavyZones.push({
+                    x: entity.x,
+                    y: entity.y,
+                    radius: 1.4 + this.stats.captures * 0.04,
+                    ttl: 11,
+                    strength: 0.55 + this.stats.captures * 0.02,
+                  });
+                }
+                pressure.push(clamp(1 - dist / 10, 0, 1) * 0.9);
+                break;
+              }
+              case "silhouette": {
+                const playerViewDiff = wrapAngle(Math.atan2(entity.x - this.player.x, entity.y - this.player.y) - this.player.angle);
+                if (Math.abs(playerViewDiff) < 0.12) {
+                  entity.recentLook = 0.7;
+                  entity.dir = wrapAngle(entity.dir + Math.PI * (this.rng() > 0.5 ? 1 : -1));
+                } else if (entity.recentLook > 0) {
+                  entity.recentLook -= dt;
+                } else {
+                  const desired = this.player.angle + (playerViewDiff > 0 ? 0.6 : -0.6);
+                  entity.dir = wrapAngle(lerp(entity.dir, desired, dt * 2.4));
+                  this.moveEntity(entity, (1.6 + this.stats.captures * 0.04) * dt);
+                }
+                pressure.push(clamp(1 - dist / 7, 0, 1) * 0.9);
+                break;
+              }
+              case "eulogy": {
+                entity.dir = wrapAngle(lerp(entity.dir, dirToPlayer + Math.sin(this.time * 0.8 + dist) * 0.5, dt * 1.6));
+                this.moveEntity(entity, (1.18 + this.stats.captures * 0.05) * dt);
+                if (this.time - entity.lastTrailAt > Math.max(1.8 - this.stats.captures * 0.06, 0.6)) {
+                  entity.lastTrailAt = this.time;
+                  const sample = this.playerTrails.length
+                    ? this.playerTrails[Math.max(0, this.playerTrails.length - 1 - Math.floor(this.rng() * Math.min(6, this.playerTrails.length)))]
+                    : { x: this.player.x, y: this.player.y };
+                  this.ghostTrails.push({
+                    x: sample.x + (this.rng() - 0.5) * 0.08,
+                    y: sample.y + (this.rng() - 0.5) * 0.08,
+                    ttl: 12 + this.stats.captures * 0.15,
+                    fake: true,
+                  });
+                }
+                pressure.push(clamp(1 - dist / 9, 0, 1) * 0.85);
+                break;
+              }
+              case "crescent": {
+                entity.visible = entity.phase > 0.45;
+                entity.dir = wrapAngle(lerp(entity.dir, dirToPlayer + Math.sin(this.time * 0.9) * 0.3, dt * 1.8));
+                this.moveEntity(entity, (1.34 + this.stats.captures * 0.04) * dt);
+                pressure.push(clamp(1 - dist / 8, 0, 1) * 0.8);
+                break;
+              }
+              case "obsidian": {
+                if (lookingAt && dist < 4.5) {
+                  entity.chaseTimer += dt;
+                } else {
+                  entity.chaseTimer = Math.max(0, entity.chaseTimer - dt * 1.2);
+                }
+                entity.dir = wrapAngle(lerp(entity.dir, dirToPlayer, dt * 1.9));
+                this.moveEntity(entity, (1.28 + this.stats.captures * 0.06) * dt);
+                if (this.time - entity.lastHazardAt > 0.9) {
+                  entity.lastHazardAt = this.time;
+                  this.hazards.push({
+                    x: entity.x,
+                    y: entity.y,
+                    radius: 0.5,
+                    ttl: 13,
+                  });
+                }
+                pressure.push(clamp(1 - dist / 10, 0, 1) * 0.9);
+                break;
+              }
+              case "vespers": {
+                if (entity.pauseTimer <= 0 && this.rng() < dt * 0.22) {
+                  entity.pauseTimer = 1.2 + this.rng() * 1.4;
+                  entity.patienceWindow = dist;
+                }
+                if (entity.pauseTimer > 0) {
+                  entity.pauseTimer -= dt;
+                  const rushed = entity.patienceWindow - dist > 1.15;
+                  if (rushed) {
+                    const resistance = this.hasPower("vespers") ? 0.45 : 1;
+                    if (resistance > 0.5 || this.rng() > 0.55) {
+                      const target = this.pickSpawn(Math.floor(this.time * 10) + entity.name.length);
+                      entity.x = target.x;
+                      entity.y = target.y;
+                      entity.pauseTimer = 0;
+                      this.pushMessage("Vespers withdraws from impatience.");
+                      this.audio.pulseEvent(210, 0.25, 0.08, "triangle");
+                    }
+                  }
+                } else {
+                  entity.dir = wrapAngle(lerp(entity.dir, dirToPlayer, dt * 1.1));
+                  this.moveEntity(entity, (0.9 + this.stats.captures * 0.03) * dt);
+                }
+                pressure.push(clamp(1 - dist / 11, 0, 1) * 0.65);
+                break;
+              }
+              case "relic": {
+                const node = entity.nodes[entity.nodeIndex];
+                const nodeVector = { x: node.x - entity.x, y: node.y - entity.y };
+                const nodeDist = Math.hypot(nodeVector.x, nodeVector.y);
+                if (nodeDist < 0.4 || this.rng() < dt * 0.05) {
+                  entity.nodeIndex = (entity.nodeIndex + 1) % entity.nodes.length;
+                  const next = entity.nodes[entity.nodeIndex];
+                  entity.x = next.x;
+                  entity.y = next.y;
+                } else {
+                  entity.dir = wrapAngle(Math.atan2(nodeVector.x, nodeVector.y));
+                }
+                pressure.push(clamp(1 - dist / 8, 0, 1) * 0.72);
+                break;
+              }
+              default:
+                break;
+            }
+
+            if (entity.id !== "relic" && this.rng() < dt * 0.08) {
+              entity.dir = wrapAngle(entity.dir + diff * 0.08 + (this.rng() - 0.5) * 0.5);
+            }
+          }
+
+          this.threatPressure = clamp(pressure.reduce((sum, value) => sum + value, 0) / 4.6, 0, 1);
+        }
+
+        moveEntity(entity, amount) {
+          const dx = Math.sin(entity.dir) * amount;
+          const dy = Math.cos(entity.dir) * amount;
+          const nx = entity.x + dx;
+          const ny = entity.y + dy;
+          if (!this.isWall(nx, entity.y)) entity.x = nx;
+          else entity.dir = wrapAngle(entity.dir + Math.PI * (this.rng() > 0.5 ? 0.5 : -0.5));
+          if (!this.isWall(entity.x, ny)) entity.y = ny;
+          else entity.dir = wrapAngle(entity.dir + Math.PI * (this.rng() > 0.5 ? 0.5 : -0.5));
+        }
+
+        updateContainment(dt) {
+          const contained = this.entities.filter((entity) => entity.captured).length;
+          const baseDrain = 0.15 + contained * 0.16 + this.threatPressure * 0.7;
+          const stabilizing = !!this.keys["f"] && this.player.stamina > 0;
+          this.box.stability -= baseDrain * dt;
+          if (stabilizing) {
+            this.box.stability += (contained > 0 ? 8.5 : 4.5) * dt;
+          }
+
+          if (contained >= 7 || this.box.stability < 16) {
+            this.box.overload = true;
+          }
+
+          if (this.box.overload) {
+            this.box.stability -= dt * 0.4;
+            this.box.breakTimer += dt;
+            if (this.time - this.box.lastEscapeAt > 7.2) {
+              this.box.lastEscapeAt = this.time;
+              this.triggerEscape(this.box.stability < 10 ? 2 : 1);
+            }
+          } else if (this.box.stability < 20 && this.time - this.box.lastEscapeAt > 11) {
+            this.box.lastEscapeAt = this.time;
+            this.triggerEscape(1);
+          }
+
+          if (this.box.stability <= 0 && !this.box.broken) {
+            this.box.broken = true;
+            this.box.overload = true;
+            this.releaseAll();
+            this.pushMessage("Containment has failed. Survival collapses with it.");
+          }
+
+          this.box.stability = clamp(this.box.stability, 0, 100);
+          this.box.shake = this.box.stability >= 80
+            ? 0.4
+            : this.box.stability >= 50
+              ? 1.4
+              : this.box.stability >= 20
+                ? 4.1
+                : 7.4;
+
+          if (this.box.broken) {
+            this.player.fear += dt * 28;
+            if (this.player.fear > 100 || this.box.breakTimer > 16) {
+              this.failRun("The Red Box breaks. Everything returns.");
+            }
+          }
+        }
+
+        triggerEscape(count) {
+          const captured = this.entities.filter((entity) => entity.captured);
+          if (!captured.length) return;
+          const pool = [...captured].sort(() => this.rng() - 0.5).slice(0, count);
+          for (const entity of pool) {
+            entity.captured = false;
+            entity.escaped = true;
+            entity.x = this.player.x + Math.sin(this.time + entity.name.length) * 2.2;
+            entity.y = this.player.y + Math.cos(this.time + entity.name.length) * 2.2;
+            if (this.isWall(entity.x, entity.y)) {
+              const spot = this.pickSpawn(Math.floor(this.time * 10) + entity.name.length);
+              entity.x = spot.x;
+              entity.y = spot.y;
+            }
+            this.pushMessage(entity.name + " slips out of the Red Box.");
+            this.audio.pulseEvent(170, 0.28, 0.07, "square");
+          }
+        }
+
+        releaseAll() {
+          for (const entity of this.entities) {
+            if (entity.captured) {
+              entity.captured = false;
+              entity.escaped = true;
+              const spot = this.pickSpawn(Math.floor(this.time * 100) + entity.name.length);
+              entity.x = spot.x;
+              entity.y = spot.y;
+            }
+          }
+        }
+
+        updateEffects(dt) {
+          this.hazards = this.hazards.filter((hazard) => (hazard.ttl -= dt) > 0);
+          this.heavyZones = this.heavyZones.filter((zone) => (zone.ttl -= dt) > 0);
+          this.ghostTrails = this.ghostTrails.filter((trail) => (trail.ttl -= dt) > 0);
+          this.playerTrails = this.playerTrails.filter((trail) => (trail.ttl -= dt) > 0);
+          this.statusEffects = [];
+
+          const velour = this.findEntity("velour");
+          if (velour && !velour.captured && distance(this.player, velour) < velour.silenceRadius && !this.hasPower("velour")) {
+            this.player.fear += dt * 4;
+            this.statusEffects.push("Velour silence field");
+          }
+          const lament = this.findEntity("lament");
+          if (lament && !lament.captured && distance(this.player, lament) < 4) {
+            this.player.fear += dt * 3;
+            this.statusEffects.push("Lament burden field");
+          }
+          const nocturne = this.findEntity("nocturne");
+          if (nocturne && !nocturne.captured && distance(this.player, nocturne) < 5) {
+            this.statusEffects.push("Nocturne dimming nearby lights");
+          }
+          if (this.box.overload) {
+            this.statusEffects.push("Overload: powers glitch unpredictably");
+          }
+          if (this.box.stability < 20 && !this.box.broken) {
+            this.statusEffects.push("Escape state: breach possible");
+          }
+
+          this.player.fear = clamp(this.player.fear, 0, 100);
+        }
+
+        computeVisibleTarget() {
+          const visible = [];
+          for (const entity of this.entities) {
+            if (entity.captured) continue;
+            const dx = entity.x - this.player.x;
+            const dy = entity.y - this.player.y;
+            const dist = Math.hypot(dx, dy);
+            const angle = wrapAngle(Math.atan2(dx, dy) - this.player.angle);
+            const los = this.hasLineOfSight(this.player.x, this.player.y, entity.x, entity.y);
+            if (!los || dist > 6) continue;
+
+            let allowed = true;
+            if (entity.id === "silhouette") {
+              allowed = Math.abs(angle) > 0.18 && Math.abs(angle) < 0.48;
+            } else if (entity.id === "velour") {
+              allowed = Math.abs(angle) < 0.08;
+            } else if (entity.id === "crescent") {
+              allowed = entity.visible;
+            } else {
+              allowed = Math.abs(angle) < 0.12;
+            }
+
+            if (allowed) visible.push({ entity, dist, angle });
+          }
+
+          visible.sort((a, b) => a.dist - b.dist);
+          this.visibleTarget = visible[0] || null;
+        }
+
+        attemptCapture() {
+          if (!this.running || this.gameOver) return;
+          const target = this.visibleTarget && this.visibleTarget.entity;
+          if (!target || this.visibleTarget.dist > MAX_CAPTURE_RANGE) {
+            this.stats.missedCaptures += 1;
+            this.noteMistake(0.24, "The box closes on nothing.");
+            this.audio.pulseEvent(120, 0.18, 0.05, "square");
+            return;
+          }
+
+          if (target.id === "vespers" && target.pauseTimer <= 0 && !this.hasPower("vespers")) {
+            this.noteMistake(0.18, "Vespers rejects haste.");
+            return;
+          }
+          if (target.id === "nocturne" && this.lightAt(this.player.x, this.player.y) < 0.35 && !this.hasPower("nocturne")) {
+            this.noteMistake(0.2, "Nocturne outpaces your hands in darkness. Drag it into light.");
+            return;
+          }
+          if (target.id === "penance" && this.stats.mistakes >= 6 && !this.hasPower("penance")) {
+            this.noteMistake(0.16, "Penance has been fed too well. Move cleanly before binding it.");
+            return;
+          }
+          if (target.id === "obsidian" && target.chaseTimer > 1.1 && !this.hasPower("obsidian")) {
+            this.hazards.push({ x: target.x, y: target.y, radius: 0.72, ttl: 10 });
+            this.noteMistake(0.22, "Obsidian punishes the direct chase. Cut an angle instead.");
+            return;
+          }
+          if (target.id === "relic" && !this.hasPower("relic")) {
+            const node = target.nodes[target.nodeIndex];
+            if (Math.hypot(target.x - node.x, target.y - node.y) > 0.55) {
+              this.noteMistake(0.18, "Relic slips the route. Intercept a node instead of lunging.");
+              return;
+            }
+          }
+          if (target.id === "crescent" && !target.visible) {
+            this.noteMistake(0.14, "Crescent is between phases.");
+            return;
+          }
+
+          target.captured = true;
+          target.escaped = false;
+          this.stats.captures += 1;
+          this.box.stability -= 8 + this.stats.captures * 1.45;
+          this.pushMessage(target.name + " is contained. Power granted: " + target.power + ".");
+          this.audio.pulseEvent(480, 0.22, 0.09, "sine");
+          this.flashTimer = 0.2;
+          HUD.flashOverlay.style.opacity = "0.55";
+          setTimeout(() => {
+            HUD.flashOverlay.style.opacity = "0";
+          }, 90);
+
+          StorageBridge.save({
+            bestCaptures: Math.max(this.save.bestCaptures || 0, this.stats.captures),
+            totalRuns: this.save.totalRuns || 0,
+            powersUnlocked: Array.from(new Set([...(this.save.powersUnlocked || []), target.id])),
+            seenEntities: Array.from(new Set([...(this.save.seenEntities || []), target.id])),
+          });
+        }
+
+        noteMistake(intensity, message) {
+          this.stats.mistakes += 1;
+          this.player.fear += intensity * 25;
+          this.flashTimer = Math.max(this.flashTimer, intensity);
+          HUD.flashOverlay.style.opacity = String(clamp(intensity * 1.8, 0.1, 0.42));
+          setTimeout(() => {
+            HUD.flashOverlay.style.opacity = "0";
+          }, 80);
+          if (message) this.pushMessage(message);
+        }
+
+        checkThreats() {
+          for (const entity of this.entities) {
+            if (entity.captured) continue;
+            const dist = distance(this.player, entity);
+            if (dist < 0.42) {
+              this.failRun(entity.name + " reaches you.");
+              return;
+            }
+          }
+        }
+
+        lightAt(x, y) {
+          let value = this.hasPower("nocturne") ? 0.42 : 0.28;
+          for (const node of this.lightNodes) {
+            const d = Math.hypot(x - (node.x + 0.5), y - (node.y + 0.5));
+            value += clamp(1.8 / (d * d + 0.9), 0, 0.42);
+          }
+          const nocturne = this.findEntity("nocturne");
+          if (nocturne && !nocturne.captured) {
+            const d = Math.hypot(x - nocturne.x, y - nocturne.y);
+            value -= clamp(1.2 - d * 0.22, 0, 0.5);
+          }
+          return clamp(value, 0.04, 1);
+        }
+
+        castRay(angle) {
+          let depth = 0;
+          const sin = Math.sin(angle);
+          const cos = Math.cos(angle);
+          while (depth < 20) {
+            depth += 0.02;
+            const x = this.player.x + sin * depth;
+            const y = this.player.y + cos * depth;
+            if (this.isWall(x, y)) {
+              return depth;
+            }
+          }
+          return 20;
+        }
+
+        hasLineOfSight(x1, y1, x2, y2) {
+          const dx = x2 - x1;
+          const dy = y2 - y1;
+          const dist = Math.hypot(dx, dy);
+          const steps = Math.ceil(dist / 0.08);
+          for (let i = 1; i < steps; i += 1) {
+            const t = i / steps;
+            const x = lerp(x1, x2, t);
+            const y = lerp(y1, y2, t);
+            if (this.isWall(x, y)) return false;
+          }
+          return true;
+        }
+
+        draw(dt) {
+          const width = canvas.width;
+          const height = canvas.height;
+          const horizon = height * (0.5 + Math.sin(this.time * 3.2) * this.threatPressure * 0.01);
+
+          ctx.clearRect(0, 0, width, height);
+
+          const floorGradient = ctx.createLinearGradient(0, horizon, 0, height);
+          floorGradient.addColorStop(0, "rgba(20, 12, 14, 0.92)");
+          floorGradient.addColorStop(1, "rgba(5, 4, 7, 1)");
+          ctx.fillStyle = floorGradient;
+          ctx.fillRect(0, horizon, width, height - horizon);
+
+          const skyGradient = ctx.createLinearGradient(0, 0, 0, horizon);
+          skyGradient.addColorStop(0, "rgba(8, 9, 18, 1)");
+          skyGradient.addColorStop(1, "rgba(18, 9, 12, 0.98)");
+          ctx.fillStyle = skyGradient;
+          ctx.fillRect(0, 0, width, horizon);
+
+          const rayCount = Math.floor(width / 2);
+          this.rays = [];
+          for (let i = 0; i < rayCount; i += 1) {
+            const cameraX = (i / rayCount) - 0.5;
+            const angle = this.player.angle + cameraX * FOV;
+            let dist = this.castRay(angle);
+            dist *= Math.cos(cameraX * FOV);
+            this.rays.push(dist);
+
+            const sliceHeight = clamp((height * 0.9) / Math.max(dist, 0.0001), 0, height * 1.5);
+            const y = horizon - sliceHeight / 2;
+            const light = clamp(this.lightAt(this.player.x + Math.sin(angle) * dist, this.player.y + Math.cos(angle) * dist), 0.08, 1);
+            const shade = clamp(1 - dist / 14, 0, 1) * light;
+            const hue = 14 + shade * 30;
+            ctx.fillStyle = "hsla(" + hue + ", 32%, " + (18 + shade * 28) + "%, 1)";
+            ctx.fillRect(i * 2, y, 3, sliceHeight);
+          }
+
+          this.drawWorldEffects(width, height, horizon);
+          this.drawEntities(width, height, horizon);
+          this.drawPost(width, height);
+        }
+
+        drawWorldEffects(width, height, horizon) {
+          if (this.hasPower("silhouette")) {
+            ctx.strokeStyle = "rgba(120, 160, 255, 0.28)";
+            ctx.lineWidth = 2;
+            for (const mark of this.hiddenMarks) {
+              const dx = mark.x + 0.5 - this.player.x;
+              const dy = mark.y + 0.5 - this.player.y;
+              const dist = Math.hypot(dx, dy);
+              if (dist > 7) continue;
+              const angle = wrapAngle(Math.atan2(dx, dy) - this.player.angle);
+              if (Math.abs(angle) > FOV / 2) continue;
+              const sx = width / 2 + (angle / (FOV / 2)) * (width / 2);
+              const sy = horizon + height / Math.max(dist, 1) * 0.32;
+              ctx.beginPath();
+              ctx.moveTo(sx - 10, sy);
+              ctx.lineTo(sx + 10, sy);
+              ctx.stroke();
+            }
+          }
+
+          for (const zone of this.heavyZones) {
+            const dx = zone.x - this.player.x;
+            const dy = zone.y - this.player.y;
+            const dist = Math.hypot(dx, dy);
+            if (dist > 7) continue;
+            const angle = wrapAngle(Math.atan2(dx, dy) - this.player.angle);
+            if (Math.abs(angle) > FOV / 2) continue;
+            const size = clamp(260 / dist, 10, 180);
+            const sx = width / 2 + (angle / (FOV / 2)) * (width / 2);
+            const sy = horizon + height / Math.max(dist, 1) * 0.42;
+            ctx.fillStyle = "rgba(150, 210, 240, 0.08)";
+            ctx.beginPath();
+            ctx.ellipse(sx, sy, size * 0.7, size * 0.25, 0, 0, TAU);
+            ctx.fill();
+          }
+
+          for (const hazard of this.hazards) {
+            const dx = hazard.x - this.player.x;
+            const dy = hazard.y - this.player.y;
+            const dist = Math.hypot(dx, dy);
+            if (dist > 7) continue;
+            const angle = wrapAngle(Math.atan2(dx, dy) - this.player.angle);
+            if (Math.abs(angle) > FOV / 2) continue;
+            const size = clamp(200 / dist, 8, 110);
+            const sx = width / 2 + (angle / (FOV / 2)) * (width / 2);
+            const sy = horizon + height / Math.max(dist, 1) * 0.42;
+            ctx.fillStyle = "rgba(220, 160, 100, 0.18)";
+            ctx.beginPath();
+            ctx.moveTo(sx, sy - size * 0.4);
+            ctx.lineTo(sx + size * 0.2, sy + size * 0.34);
+            ctx.lineTo(sx - size * 0.22, sy + size * 0.34);
+            ctx.closePath();
+            ctx.fill();
+          }
+        }
+
+        drawEntities(width, height, horizon) {
+          const sprites = [];
+
+          for (const trail of this.ghostTrails) {
+            const dx = trail.x - this.player.x;
+            const dy = trail.y - this.player.y;
+            const dist = Math.hypot(dx, dy);
+            const angle = wrapAngle(Math.atan2(dx, dy) - this.player.angle);
+            if (Math.abs(angle) > FOV / 2 || dist < 0.3) continue;
+            sprites.push({
+              x: trail.x,
+              y: trail.y,
+              dist,
+              angle,
+              color: this.hasPower("eulogy") ? "rgba(110, 255, 180, 0.22)" : "rgba(180, 120, 255, 0.24)",
+              scale: 0.75,
+            });
+          }
+
+          for (const trail of this.playerTrails) {
+            if (!this.hasPower("eulogy")) continue;
+            const dx = trail.x - this.player.x;
+            const dy = trail.y - this.player.y;
+            const dist = Math.hypot(dx, dy);
+            const angle = wrapAngle(Math.atan2(dx, dy) - this.player.angle);
+            if (Math.abs(angle) > FOV / 2 || dist < 0.3) continue;
+            sprites.push({
+              x: trail.x,
+              y: trail.y,
+              dist,
+              angle,
+              color: "rgba(120, 255, 190, 0.18)",
+              scale: 0.62,
+            });
+          }
+
+          for (const entity of this.entities) {
+            if (entity.captured) continue;
+            if (entity.id === "crescent" && !entity.visible) continue;
+
+            const dx = entity.x - this.player.x;
+            const dy = entity.y - this.player.y;
+            const dist = Math.hypot(dx, dy);
+            const angle = wrapAngle(Math.atan2(dx, dy) - this.player.angle);
+            if (Math.abs(angle) > FOV / 2 + 0.2) continue;
+
+            if (entity.id === "silhouette" && Math.abs(angle) < 0.16) continue;
+            if (entity.id === "velour" && Math.abs(angle) > 0.11) continue;
+
+            sprites.push({
+              x: entity.x,
+              y: entity.y,
+              dist,
+              angle,
+              color: entity.color,
+              entity,
+              scale: entity.id === "relic" ? 0.75 : 1,
+            });
+          }
+
+          sprites.sort((a, b) => b.dist - a.dist);
+
+          for (const sprite of sprites) {
+            const screenX = width / 2 + (sprite.angle / (FOV / 2)) * (width / 2);
+            const spriteWidth = clamp((height / Math.max(sprite.dist, 0.4)) * 0.24 * sprite.scale, 10, 260);
+            const spriteHeight = spriteWidth * 1.8;
+            const y = horizon - spriteHeight * 0.52;
+            const rayIndex = Math.floor((screenX / width) * this.rays.length);
+            const visibleDepth = this.rays[clamp(rayIndex, 0, this.rays.length - 1)] || 0;
+            if (visibleDepth && sprite.dist > visibleDepth + 0.2) continue;
+
+            if (sprite.entity) {
+              const body = ctx.createLinearGradient(0, y, 0, y + spriteHeight);
+              body.addColorStop(0, sprite.entity.id === "silhouette" ? "rgba(60,60,60,0.78)" : sprite.color);
+              body.addColorStop(1, "rgba(8, 8, 12, 0.18)");
+              ctx.fillStyle = body;
+            } else {
+              ctx.fillStyle = sprite.color;
+            }
+
+            ctx.fillRect(screenX - spriteWidth / 2, y, spriteWidth, spriteHeight);
+
+            if (sprite.entity) {
+              ctx.fillStyle = "rgba(255,255,255,0.08)";
+              ctx.fillRect(screenX - spriteWidth / 4, y + spriteHeight * 0.14, spriteWidth / 2, spriteHeight * 0.08);
+
+              if (sprite.entity.id === "crescent" && this.hasPower("crescent")) {
+                ctx.strokeStyle = "rgba(200, 235, 255, 0.75)";
+                ctx.strokeRect(screenX - spriteWidth / 2 - 4, y - 10, spriteWidth + 8, 6);
+                ctx.fillStyle = "rgba(200, 235, 255, 0.45)";
+                ctx.fillRect(screenX - spriteWidth / 2 - 4, y - 10, (spriteWidth + 8) * sprite.entity.phase, 6);
+              }
+
+              if (sprite.entity.id === "relic" && this.hasPower("relic")) {
+                const nextNode = sprite.entity.nodes[sprite.entity.nodeIndex];
+                const nx = nextNode.x - this.player.x;
+                const ny = nextNode.y - this.player.y;
+                const nd = Math.hypot(nx, ny);
+                const na = wrapAngle(Math.atan2(nx, ny) - this.player.angle);
+                if (Math.abs(na) < FOV / 2 && nd < 10) {
+                  const sx = width / 2 + (na / (FOV / 2)) * (width / 2);
+                  ctx.strokeStyle = "rgba(255, 192, 255, 0.48)";
+                  ctx.beginPath();
+                  ctx.moveTo(sx, horizon + height / nd * 0.2);
+                  ctx.lineTo(sx, horizon + height / nd * 0.32);
+                  ctx.stroke();
+                }
+              }
+            }
+          }
+        }
+
+        drawPost(width, height) {
+          const stress = this.threatPressure + this.player.fear / 120 + (100 - this.box.stability) / 150;
+          const jitter = (stress * (this.box.overload ? 6 : 2) + this.box.shake) * Math.sin(this.time * 23);
+          HUD.boxWidget.style.transform = "translate(" + jitter + "px," + (-jitter * 0.5) + "px) rotate(" + jitter * 0.28 + "deg)";
+
+          canvas.style.filter =
+            "contrast(" + (1.02 + stress * 0.06 + (this.box.stability < 50 ? 0.03 : 0)).toFixed(2) + ") " +
+            "saturate(" + (0.86 + stress * 0.18).toFixed(2) + ") " +
+            "blur(" + (stress * (this.findEntity("lament") && !this.findEntity("lament").captured ? 0.55 : 0.18)).toFixed(2) + "px)" +
+            " hue-rotate(" + ((this.box.overload ? Math.sin(this.time * 8) * 8 : 0)).toFixed(2) + "deg)";
+
+          const glitch = document.getElementById("glitchOverlay");
+          glitch.style.opacity = String(0.05 + stress * 0.18 + (this.box.overload ? 0.1 : 0));
+
+          ctx.save();
+          const chroma = clamp(stress * 4, 0, 12);
+          if (chroma > 0.1) {
+            ctx.globalCompositeOperation = "screen";
+            ctx.fillStyle = "rgba(255, 50, 50, 0.05)";
+            ctx.fillRect(chroma, 0, width, height);
+            ctx.fillStyle = "rgba(80, 120, 255, 0.05)";
+            ctx.fillRect(-chroma, 0, width, height);
+          }
+          ctx.restore();
+        }
+
+        renderHud() {
+          const contained = this.entities.filter((entity) => entity.captured).length;
+          HUD.stabilityBar.style.width = this.box.stability.toFixed(1) + "%";
+          HUD.staminaBar.style.width = this.player.stamina.toFixed(1) + "%";
+          HUD.threatBar.style.width = (this.threatPressure * 100).toFixed(1) + "%";
+          HUD.stabilityValue.textContent = Math.round(this.box.stability) + "%";
+          HUD.staminaValue.textContent = Math.round(this.player.stamina) + "%";
+          HUD.threatValue.textContent = Math.round(this.threatPressure * 100) + "%";
+          HUD.countValue.textContent = contained + " / " + ENTITY_COUNT;
+          HUD.timeValue.textContent = formatTime(this.time);
+          HUD.storageValue.textContent = StorageBridge.mode;
+          HUD.escapeValue.textContent = this.box.broken
+            ? "collapse"
+            : this.box.overload
+              ? "multi-escape"
+              : this.box.stability < 20
+                ? "single escape"
+                : "none";
+
+          if (this.box.stability >= 80) {
+            this.box.stateText = "Stable";
+            HUD.boxHint.textContent = "Containment is calm. Each new entity still adds pressure.";
+          } else if (this.box.stability >= 50) {
+            this.box.stateText = "Light Shaking";
+            HUD.boxHint.textContent = "The box is moving. A single escape becomes likely.";
+          } else if (this.box.stability >= 20) {
+            this.box.stateText = "Heavy Shake";
+            HUD.boxHint.textContent = "Audio distorts. The lattice is thinning. Hold F to force it steady.";
+          } else {
+            this.box.stateText = this.box.broken ? "Broken" : "Escape State";
+            HUD.boxHint.textContent = this.box.broken
+              ? "All entities are loose. The system cannot recover."
+              : "Escape events are active. Expect containment breaches.";
+          }
+
+          if (this.box.overload && !this.box.broken) {
+            HUD.boxStateText.textContent = "Overload";
+          } else {
+            HUD.boxStateText.textContent = this.box.stateText;
+          }
+
+          if (this.visibleTarget && this.visibleTarget.dist <= MAX_CAPTURE_RANGE) {
+            const entity = this.visibleTarget.entity;
+            HUD.capturePrompt.textContent = "Press E to bind " + entity.name + " into the Red Box";
+            HUD.capturePrompt.classList.add("visible");
+          } else {
+            HUD.capturePrompt.classList.remove("visible");
+          }
+
+          const freeEntities = this.entities.filter((entity) => !entity.captured);
+          freeEntities.sort((a, b) => distance(this.player, a) - distance(this.player, b));
+          const nearest = freeEntities[0];
+          if (nearest) {
+            HUD.targetName.textContent = nearest.name;
+            HUD.targetHint.textContent = nearest.detail;
+          } else {
+            HUD.targetName.textContent = "Contained";
+            HUD.targetHint.textContent = "Nothing remains outside the Red Box.";
+          }
+
+          HUD.containedList.innerHTML = "";
+          for (const entity of this.entities.filter((item) => item.captured)) {
+            const row = document.createElement("div");
+            row.className = "listItem";
+            row.innerHTML = "<strong>" + entity.name + "</strong><span class='muted'>sealed</span>";
+            HUD.containedList.appendChild(row);
+          }
+          if (!HUD.containedList.children.length) {
+            const row = document.createElement("div");
+            row.className = "listItem";
+            row.textContent = "No entities contained.";
+            HUD.containedList.appendChild(row);
+          }
+
+          HUD.powerList.innerHTML = "";
+          for (const entity of this.entities.filter((item) => item.captured)) {
+            const row = document.createElement("div");
+            row.className = "listItem";
+            const glitchy = this.box.overload && !this.hasPower(entity.id);
+            row.innerHTML = "<strong>" + entity.power + "</strong><span class='muted'>" + (glitchy ? "glitching" : "active") + "</span>";
+            HUD.powerList.appendChild(row);
+          }
+          if (!HUD.powerList.children.length) {
+            const row = document.createElement("div");
+            row.className = "listItem";
+            row.textContent = "Capture entities to harvest powers.";
+            HUD.powerList.appendChild(row);
+          }
+
+          HUD.effectList.innerHTML = "";
+          for (const effect of this.statusEffects.slice(0, 6)) {
+            const row = document.createElement("div");
+            row.className = "listItem";
+            row.innerHTML = "<strong>" + effect + "</strong><span class='muted'>live</span>";
+            HUD.effectList.appendChild(row);
+          }
+          if (!HUD.effectList.children.length) {
+            const row = document.createElement("div");
+            row.className = "listItem";
+            row.textContent = "No immediate anomalous effects.";
+            HUD.effectList.appendChild(row);
+          }
+
+          HUD.clueList.innerHTML = "";
+          const visibleClues = CLUE_LIBRARY.filter((clue) => this.discoveredClues.includes(clue.id));
+          for (const clue of visibleClues.slice(-5).reverse()) {
+            const row = document.createElement("div");
+            row.className = "listItem";
+            row.style.display = "block";
+            row.innerHTML = "<strong>" + clue.title + "</strong><div class='muted' style='margin-top:4px; line-height:1.45;'>" + clue.text + "</div>";
+            HUD.clueList.appendChild(row);
+          }
+          if (!HUD.clueList.children.length) {
+            const row = document.createElement("div");
+            row.className = "listItem";
+            row.textContent = "No recovered clues yet.";
+            HUD.clueList.appendChild(row);
+          }
+
+          HUD.messagePanel.textContent = this.messageTimer > 0 ? this.message : (
+            this.gameOver ? this.endedBy + " Press Start Run to descend again." : "WASD move. Shift sprint. E capture. F stabilize. Recover clues as the run worsens."
+          );
+        }
+
+        pushMessage(text) {
+          this.message = text;
+          this.messageTimer = 4.6;
+        }
+
+        finishRun(text) {
+          this.running = false;
+          this.gameOver = true;
+          this.endedBy = text;
+          this.persistRun(true);
+          HUD.menu.classList.remove("hidden");
+        }
+
+        failRun(text) {
+          this.running = false;
+          this.gameOver = true;
+          this.endedBy = text;
+          this.persistRun(false);
+          HUD.menu.classList.remove("hidden");
+        }
+
+        persistRun(success) {
+          const captured = this.stats.captures;
+          const payload = {
+            bestCaptures: Math.max(this.save.bestCaptures || 0, captured),
+            totalRuns: (this.save.totalRuns || 0) + 1,
+            powersUnlocked: Array.from(new Set([
+              ...(this.save.powersUnlocked || []),
+              ...this.entities.filter((entity) => entity.captured).map((entity) => entity.id),
+            ])),
+            seenEntities: Array.from(new Set([
+              ...(this.save.seenEntities || []),
+              ...this.entities.map((entity) => entity.id),
+            ])),
+            discoveredClues: Array.from(new Set([
+              ...(this.save.discoveredClues || []),
+              ...this.discoveredClues,
+            ])),
+            lastOutcome: success ? "contained" : "lost",
+            lastRunAt: new Date().toISOString(),
+          };
+          this.save = Object.assign({}, this.save, payload);
+          StorageBridge.save(payload);
+        }
+
+        resize() {
+          const scale = Math.min(window.devicePixelRatio || 1, 2);
+          canvas.width = Math.floor(window.innerWidth * scale);
+          canvas.height = Math.floor(window.innerHeight * scale);
+          canvas.style.width = window.innerWidth + "px";
+          canvas.style.height = window.innerHeight + "px";
+          ctx.setTransform(scale, 0, 0, scale, 0, 0);
+        }
+
+        drawSplash() {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          ctx.fillStyle = "#06070b";
+          ctx.fillRect(0, 0, window.innerWidth, window.innerHeight);
+          ctx.fillStyle = "rgba(255, 230, 230, 0.84)";
+          ctx.font = "700 54px Georgia";
+          ctx.fillText("Disgrace", 36, 88);
+          ctx.fillStyle = "rgba(220, 200, 200, 0.62)";
+          ctx.font = "16px Georgia";
+          ctx.fillText("Awaiting the first descent.", 38, 118);
+        }
+      }
+
+      const game = new Game();
+      game.boot();
+    })();
+  </script>
+</body>
+</html>
