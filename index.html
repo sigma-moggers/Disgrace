@@ -16,7 +16,6 @@
       --warn: #ffcf70;
       --good: #8ff0b4;
     }
-
     * {
       box-sizing: border-box;
     }
@@ -448,6 +447,8 @@
         <div class="bar"><div id="threatBar" class="barFill threat"></div></div>
       </div>
       <div class="valueLine"><span>Contained</span><span id="countValue">0 / 10</span></div>
+      <div class="valueLine"><span>Lives</span><span id="livesValue">3</span></div>
+      <div class="valueLine"><span>Shove</span><span id="shoveValue">ready</span></div>
       <div class="valueLine"><span>Storage</span><span id="storageValue">localStorage</span></div>
       <div class="valueLine"><span>Escape Risk</span><span id="escapeValue">none</span></div>
       <div class="valueLine"><span>Run Time</span><span id="timeValue">00:00</span></div>
@@ -476,31 +477,31 @@
       <div id="clueList"></div>
     </div>
 
-    <div id="messagePanel" class="panel">Press `Start Run`, click the screen, and move with `WASD`. Sprint with `Shift`. Capture with `E`.</div>
+    <div id="messagePanel" class="panel">Press `Start Run`, click the screen, look with the mouse, and move with `WASD`. Sprint with `Shift`. Capture with `E`. Shove with `Space`.</div>
   </div>
 
   <div id="menu">
-    <div id="menuCard">
-      <div class="subtitle">Single-file psychological horror prototype</div>
-      <h1>Disgrace</h1>
-      <div class="menuText">
-        You hunt rogue entities to protect humanity. They were not always dangerous. They began as harmless remainders, scraps of reality repeating quiet, meaningless actions without awareness.
-        Then some of them changed. They reacted. They learned. They broke pattern. Now every capture buys time, but every containment teaches the others how to become something worse.
-      </div>
-      <div class="menuGrid">
-        <div class="menuBox">
-          `E` captures when an entity is in sight and within range. Every capture grants a power, raises the system pressure, and reveals more of what these things are becoming.
+      <div id="menuCard">
+        <div class="subtitle">Containment descent / psychological horror prototype</div>
+        <h1>Disgrace</h1>
+        <div class="menuText">
+          You hunt rogue entities to protect humanity because they were not always dangerous. At first they were harmless remainders, small pieces of reality that did not fully disappear, repeating quiet, meaningless actions without awareness.
+          Then something changed. Some began to move, react, and learn, breaking their patterns and becoming unpredictable. The Red Box can force them back into a stable state, but it does not cure them. It only delays what they are becoming, and every successful capture teaches the others how to adapt faster.
         </div>
-        <div class="menuBox">
-          `F` stabilizes the Red Box but slows you and burns stamina. The box does not cure rogue entities. It only forces them back into a temporary, fragile state.
+        <div class="menuGrid">
+          <div class="menuBox">
+            `E` captures when an entity is in sight and within range. Each capture grants a power, raises the pressure in the maze, and makes the surviving entities feel more aware of what is being done to them.
+          </div>
+          <div class="menuBox">
+            `F` stabilizes the Red Box but slows you and burns stamina. The box does not heal rogue entities. It only forces them back into temporary stability while it struggles to contain things that no longer follow rules.
+          </div>
+          <div class="menuBox">
+            If the box fails, escapes return worse than before. You are not just hunting entities. You are trying to stop something spreading, something learning, before there is nothing left to contain and nothing left to protect.
+          </div>
+          <div class="menuBox">
+            Firebase is optional. If you define `window.__DISGRACE_FIREBASE_CONFIG` before this script loads, the game attempts anonymous auth and remote save sync. If it fails, the run continues on `localStorage`.
+          </div>
         </div>
-        <div class="menuBox">
-          If enough entities go rogue, there will be nothing left to contain them and nothing left to protect. Watch the recovered clues as the run deepens.
-        </div>
-        <div class="menuBox">
-          Firebase is optional. If you define `window.__DISGRACE_FIREBASE_CONFIG` before this script loads, the game attempts anonymous auth and remote save sync. If it fails, the run continues on `localStorage`.
-        </div>
-      </div>
       <button id="startButton">Start Run</button>
     </div>
   </div>
@@ -510,12 +511,13 @@
       "use strict";
 
       const TAU = Math.PI * 2;
-      const FOV = Math.PI / 3;
+      const FOV = Math.PI / 2.2;
       const WORLD_SIZE = 19;
       const ENTITY_COUNT = 10;
-      const MAX_CAPTURE_RANGE = 1.85;
+      const MAX_CAPTURE_RANGE = 2.4;
       const PLAYER_RADIUS = 0.2;
       const SAVE_KEY = "disgrace-save-v1";
+      const LOOK_PITCH_SCALE = 0.34;
 
       const ENTITY_LIBRARY = [
         {
@@ -523,72 +525,92 @@
           name: "Nocturne",
           color: "#8da5ff",
           power: "Night vision",
-          detail: "Fast in darkness, weakened by light. Stay near illumination to cut its speed.",
+          detail: "Fast in darkness, weakened by light. Stay near illumination to cut its speed before the corridor itself starts dimming around it.",
+          lore: "Nocturne is logged as a remainder that learned to prefer the instant a witness decides not to trust their own eyes.",
         },
         {
           id: "velour",
           name: "Velour",
           color: "#dcd6d6",
           power: "Sound suppression immunity",
-          detail: "Emits nothing. You only know it exists when you are looking directly at it.",
+          detail: "Emits nothing. You only know it exists when you are looking directly at it, and its silence radius grows as the run worsens.",
+          lore: "Researchers stopped calling Velour mute after recordings proved the sound was not absent, only removed from human certainty.",
         },
         {
           id: "penance",
           name: "Penance",
           color: "#ff7e7e",
           power: "Mistake forgiveness",
-          detail: "Feeds on hesitation, failed catches, and bad turns. Clean movement keeps it slower.",
+          detail: "Feeds on hesitation, failed catches, and bad turns. Clean movement keeps it slower and denies it the shape of your fear.",
+          lore: "Penance behaves less like a hunter than an accusation that remembers every poor decision you hoped the maze had forgotten.",
         },
         {
           id: "lament",
           name: "Lament",
           color: "#7bb7c8",
           power: "Slow resistance",
-          detail: "Leaves burdensome zones that drag your movement and your stamina recovery.",
+          detail: "Leaves burdensome zones that drag your movement and your stamina recovery, stacking grief into the floor behind it.",
+          lore: "Lament feels like emotional weight given a route, turning grief into terrain until movement itself starts to feel negotiable.",
         },
         {
           id: "silhouette",
           name: "Silhouette",
           color: "#2d2d2d",
           power: "Reveal hidden paths",
-          detail: "Only exists in the edge of sight. Looking at it directly makes it fold away.",
+          detail: "Only exists in the edge of sight. Looking at it directly makes it fold away, forcing you to track it like a doubt instead of a body.",
+          lore: "Silhouette is recorded as a peripheral remainder, something born from the human habit of noticing danger a moment too late.",
         },
         {
           id: "eulogy",
           name: "Eulogy",
           color: "#b892ff",
           power: "Detect fake trails",
-          detail: "Records your routes and replays them back as lies.",
+          detail: "Records your routes and replays them back as lies, filling the maze with counterfeit confidence over time.",
+          lore: "Eulogy does not mimic your body. It mimics the story your body tells itself about where it has already been and what must be safe.",
         },
         {
           id: "crescent",
           name: "Crescent",
           color: "#c6e4ff",
           power: "See phase timing",
-          detail: "Visible only in part of its cycle. It keeps moving even when hidden.",
+          detail: "Visible only in part of its cycle. It keeps moving even when hidden, asking you to learn timing instead of relying on sight.",
+          lore: "Crescent feels less absent than out of step, slipping through a rhythm the player can learn but never fully force to stay still.",
         },
         {
           id: "obsidian",
           name: "Obsidian",
           color: "#a77d57",
           power: "Hazard immunity",
-          detail: "Punishes straight pursuit with spike trails and shattering fragments.",
+          detail: "Punishes straight pursuit with spike trails and shattering fragments, turning impatience into damage and lost stability.",
+          lore: "Obsidian turns pursuit itself into a weapon, teaching the floor to punish anyone who chases without thinking first.",
         },
         {
           id: "vespers",
           name: "Vespers",
           color: "#eadfae",
           power: "Teleport resistance",
-          detail: "Rush it and it vanishes away. Patience is the only clean catch.",
+          detail: "Rush it and it vanishes away. Patience is the only clean catch, because it measures intent long before it measures distance.",
+          lore: "Vespers reacts to urgency like prayer reacts to doubt: it leaves the moment the plea becomes desperate.",
         },
         {
           id: "relic",
           name: "Relic",
           color: "#e0a0e0",
           power: "Predict positions",
-          detail: "Teleports between fixed nodes. Learn the route and intercept the pattern.",
+          detail: "Teleports between fixed nodes. Learn the route and intercept the pattern instead of pretending raw speed can beat rehearsal.",
+          lore: "Relic suggests the worst possibility: a remainder can keep a pattern, improve it, and act like it knows exactly why the pattern works.",
         },
       ];
+
+      function entitySeen(game, id) {
+        const entity = game.findEntity ? game.findEntity(id) : null;
+        return !!entity && (entity.captured || entity.lastSeenAt > 0 || entity.seenDirectly > 0.2);
+      }
+
+      function entityCaptured(game, id) {
+        const entity = game.findEntity ? game.findEntity(id) : null;
+        return !!entity && entity.captured;
+      }
 
       const CLUE_LIBRARY = [
         {
@@ -598,34 +620,142 @@
           text: "The first entities were harmless remainders, repeating small fragments of reality without awareness.",
         },
         {
+          id: "site_zero",
+          trigger: (game) => game.time > 20,
+          title: "Field Note 02",
+          text: "No one knows what caused the change. Records only agree on the result: once a remainder becomes rogue, it does not return to being harmless on its own.",
+        },
+        {
           id: "pattern_break",
           trigger: (game) => game.stats.captures >= 1,
-          title: "Field Note 02",
-          text: "Rogue behavior begins when an entity reacts to interruption and breaks its old loop.",
+          title: "Field Note 03",
+          text: "Rogue behavior begins when an entity reacts to interruption and breaks its old loop. Naming them did not control them. It only made the reports easier to read.",
+        },
+        {
+          id: "red_box_brief",
+          trigger: (game) => game.stats.captures >= 2,
+          title: "Containment Brief",
+          text: "The Red Box forces rogue entities into temporary stability, but it does not cure them. Every new capture makes the box more unstable, as if it is trying to hold things that no longer fit inside ordinary rules.",
         },
         {
           id: "learning",
           trigger: (game) => game.stats.captures >= 3,
-          title: "Field Note 03",
-          text: "Each successful capture seems to accelerate adaptation in the remaining entities, as if they are learning from observation.",
+          title: "Field Note 04",
+          text: "Each successful capture accelerates adaptation in the remaining entities, as if they are learning less from pain than from watching our methods too closely.",
+        },
+        {
+          id: "nocturne_file",
+          trigger: (game) => entitySeen(game, "nocturne"),
+          title: "Entity File: Nocturne",
+          text: "Nocturne does not merely live in darkness. It edits confidence inside it. Witnesses report that lit rooms feel smaller after it passes, as though light itself has become uncertain.",
+        },
+        {
+          id: "velour_file",
+          trigger: (game) => entitySeen(game, "velour"),
+          title: "Entity File: Velour",
+          text: "Velour strips away information rather than hiding within it. Teams exposed to the silence field often insist alarms never sounded, even when recordings prove otherwise.",
+        },
+        {
+          id: "penance_file",
+          trigger: (game) => game.stats.mistakes >= 4 || entitySeen(game, "penance"),
+          title: "Entity File: Penance",
+          text: "Penance amplifies shame into locomotion. It closes distance most efficiently after indecision, failed captures, and route errors that make the operator doubt their own competence.",
+        },
+        {
+          id: "lament_file",
+          trigger: (game) => entitySeen(game, "lament") || game.heavyZones.length >= 2,
+          title: "Entity File: Lament",
+          text: "Lament leaves emotional drag behind it. The burden field is not purely physical; subjects describe the sensation as remembering bad news before it is spoken aloud.",
+        },
+        {
+          id: "silhouette_file",
+          trigger: (game) => entitySeen(game, "silhouette"),
+          title: "Entity File: Silhouette",
+          text: "Silhouette resists direct acknowledgement. It exists best where human perception relies on instinct, making every attempt to look at it feel like a betrayal of the senses that found it.",
+        },
+        {
+          id: "eulogy_file",
+          trigger: (game) => entitySeen(game, "eulogy") || game.ghostTrails.length >= 3,
+          title: "Entity File: Eulogy",
+          text: "Eulogy studies movement as autobiography. Its false trails are effective because they do not imitate your steps alone; they imitate the confidence with which you remember taking them.",
+        },
+        {
+          id: "crescent_file",
+          trigger: (game) => entitySeen(game, "crescent"),
+          title: "Entity File: Crescent",
+          text: "Crescent slips through a visible and invisible cycle that continues whether you can track it or not. It feels less like disappearance than mistimed presence.",
+        },
+        {
+          id: "obsidian_file",
+          trigger: (game) => entitySeen(game, "obsidian") || game.hazards.length >= 3,
+          title: "Entity File: Obsidian",
+          text: "Obsidian punishes direct pursuit by turning straight-line chasing into a hazard. The more thoughtless the pursuit, the more the path itself becomes hostile.",
+        },
+        {
+          id: "vespers_file",
+          trigger: (game) => entitySeen(game, "vespers"),
+          title: "Entity File: Vespers",
+          text: "Vespers reads urgency as hostility. It does not flee from proximity. It flees from intent arriving too quickly to be trusted.",
+        },
+        {
+          id: "relic_file",
+          trigger: (game) => entitySeen(game, "relic"),
+          title: "Entity File: Relic",
+          text: "Relic is the clearest sign the remainders now retain structure. Its node pattern suggests rehearsal, and rehearsal implies memory with purpose.",
         },
         {
           id: "box_truth",
           trigger: (game) => game.box.stability < 55,
           title: "Containment Memo",
-          text: "The Red Box does not heal rogue entities. It only forces temporary stability onto things that no longer obey stable rules.",
+          text: "The Red Box does not heal rogue entities. It only forces temporary stability onto things that no longer obey stable rules, and each use leaves the lattice easier for them to study from the inside.",
         },
         {
           id: "spread",
           trigger: (game) => game.box.stability < 28 || game.box.overload,
           title: "Redacted Warning",
-          text: "If containment fails, escapees do not return unchanged. They come back sharper, worse, more aware of the process.",
+          text: "If containment fails, escapees do not return unchanged. They come back sharper, worse, and more aware of the process, as if the box itself has been tutoring them under pressure.",
+        },
+        {
+          id: "power_cost",
+          trigger: (game) => game.stats.captures >= 5,
+          title: "Power Audit",
+          text: "The powers harvested from captured entities are not tools added to the operator. They are tolerated traits borrowed from the anomaly field while the box still agrees to hold them.",
+        },
+        {
+          id: "overload_truth",
+          trigger: (game) => game.box.overload,
+          title: "Overload Protocol",
+          text: "Overload was once described as a recoverable state to preserve morale. Internal revisions are less generous: when powers begin glitching, the box is no longer containing the entities alone.",
         },
         {
           id: "endstate",
           trigger: (game) => game.box.overload && game.stats.captures >= 6,
           title: "Terminal Projection",
-          text: "This is not a hunt. It is an attempt to stop something spreading. If every entity goes rogue, nothing will remain capable of containing them.",
+          text: "This is not just a hunt. It is an attempt to stop something spreading, something learning. If every entity goes rogue, there will be nothing left to contain them and nothing left to protect.",
+        },
+        {
+          id: "runner_note",
+          trigger: (game) => game.box.broken,
+          title: "Last Runner Note",
+          text: "The box does not fail all at once. It loses certainty first. When it breaks, what escapes is not just what you captured. It is everything those captures taught the others to become.",
+        },
+        {
+          id: "nocturne_bound",
+          trigger: (game) => entityCaptured(game, "nocturne"),
+          title: "Binding Annotation: Nocturne",
+          text: "When Nocturne is bound, nearby light steadies for a moment. The effect is brief, suggesting the maze itself has grown used to being watched by the dark.",
+        },
+        {
+          id: "velour_bound",
+          trigger: (game) => entityCaptured(game, "velour"),
+          title: "Binding Annotation: Velour",
+          text: "Velour's captured residue restores certainty before it restores sound. Immunity appears to be cognitive first, auditory second.",
+        },
+        {
+          id: "relic_bound",
+          trigger: (game) => entityCaptured(game, "relic"),
+          title: "Binding Annotation: Relic",
+          text: "Relic's borrowed power confirms the worst internal theory: patterns can be learned, preserved, and handed back to a human nervous system as if they were instinct.",
         },
       ];
 
@@ -637,6 +767,8 @@
         staminaValue: document.getElementById("staminaValue"),
         threatValue: document.getElementById("threatValue"),
         countValue: document.getElementById("countValue"),
+        livesValue: document.getElementById("livesValue"),
+        shoveValue: document.getElementById("shoveValue"),
         storageValue: document.getElementById("storageValue"),
         escapeValue: document.getElementById("escapeValue"),
         timeValue: document.getElementById("timeValue"),
@@ -665,6 +797,22 @@
 
       function lerp(a, b, t) {
         return a + (b - a) * t;
+      }
+
+      function fract(value) {
+        return value - Math.floor(value);
+      }
+
+      function hexToRgba(hex, alpha) {
+        const value = hex.replace("#", "");
+        const normalized = value.length === 3
+          ? value.split("").map((char) => char + char).join("")
+          : value;
+        const int = Number.parseInt(normalized, 16);
+        const r = (int >> 16) & 255;
+        const g = (int >> 8) & 255;
+        const b = int & 255;
+        return "rgba(" + r + ", " + g + ", " + b + ", " + alpha + ")";
       }
 
       function wrapAngle(value) {
@@ -860,6 +1008,8 @@
           this.whisperGain = null;
           this.pulse = null;
           this.pulseGain = null;
+          this.heartbeat = null;
+          this.heartbeatGain = null;
           this.noise = null;
           this.noiseFilter = null;
           this.noiseGain = null;
@@ -911,6 +1061,14 @@
           this.pulse.connect(this.pulseGain);
           this.pulseGain.connect(this.master);
 
+          this.heartbeat = this.ctx.createOscillator();
+          this.heartbeat.type = "triangle";
+          this.heartbeat.frequency.value = 68;
+          this.heartbeatGain = this.ctx.createGain();
+          this.heartbeatGain.gain.value = 0.0001;
+          this.heartbeat.connect(this.heartbeatGain);
+          this.heartbeatGain.connect(this.master);
+
           const buffer = this.ctx.createBuffer(1, this.ctx.sampleRate * 2, this.ctx.sampleRate);
           const data = buffer.getChannelData(0);
           for (let i = 0; i < data.length; i += 1) {
@@ -931,6 +1089,7 @@
           this.drone.start();
           this.whisper.start();
           this.pulse.start();
+          this.heartbeat.start();
           this.noise.start();
           this.started = true;
         }
@@ -962,11 +1121,19 @@
           osc.stop(now + duration);
         }
 
+        stepEvent(intensity, sprinting) {
+          if (!this.ctx || !this.master) return;
+          const freq = sprinting ? 86 : 68;
+          this.pulseEvent(freq, sprinting ? 0.08 : 0.06, 0.012 + intensity * 0.014, "triangle");
+          this.pulseEvent(freq * 2.2, 0.035, 0.004 + intensity * 0.006, "sine");
+        }
+
         update(game) {
           if (!this.started || !this.ctx) return;
 
           const now = this.ctx.currentTime;
           const stress = clamp(game.threatPressure, 0, 1);
+          const panic = clamp(game.player.fear / 100 + (3 - game.player.lives) * 0.22 + (game.player.hitCooldown > 0 ? 0.3 : 0), 0, 1.5);
           const nocturne = game.findEntity("nocturne");
           const lament = game.findEntity("lament");
           const velour = game.findEntity("velour");
@@ -987,8 +1154,10 @@
           this.whisperGain.gain.linearRampToValueAtTime(0.005 + nocturneNear * 0.03, now + 0.08);
           this.pulse.frequency.linearRampToValueAtTime(118 + lamentNear * 18 + stress * 44, now + 0.08);
           this.pulseGain.gain.linearRampToValueAtTime(0.01 + lamentNear * 0.024 + stress * 0.03, now + 0.08);
+          this.heartbeat.frequency.linearRampToValueAtTime(62 + panic * 22 + (game.player.sprinting ? 8 : 0), now + 0.08);
+          this.heartbeatGain.gain.linearRampToValueAtTime((0.0015 + panic * 0.018) * silence, now + 0.08);
           this.noiseGain.gain.linearRampToValueAtTime((0.004 + distortion * 0.022) * silence, now + 0.08);
-          this.noiseFilter.frequency.linearRampToValueAtTime(680 + overload * 520 + stress * 240, now + 0.08);
+          this.noiseFilter.frequency.linearRampToValueAtTime(680 + overload * 520 + stress * 240 + panic * 120, now + 0.08);
           this.distortion.curve = this.makeDistortionCurve(24 + distortion * 260);
         }
       }
@@ -1019,13 +1188,18 @@
             x: 1.5,
             y: 1.5,
             angle: 0,
+            pitch: 0,
             stamina: 100,
+            lives: 3,
             fear: 0,
             hesitation: 0,
             lastCell: { x: 1, y: 1 },
             progressCellTime: 0,
             sprinting: false,
             steadyTime: 0,
+            stepCycle: 0,
+            shoveCooldown: 0,
+            hitCooldown: 0,
           };
 
           this.box = {
@@ -1074,6 +1248,7 @@
           window.addEventListener("mousemove", (event) => {
             if (!this.mouseLocked || !this.running || this.gameOver) return;
             this.player.angle = wrapAngle(this.player.angle + event.movementX * 0.0024);
+            this.player.pitch = wrapAngle(this.player.pitch - event.movementY * 0.002);
           });
 
           HUD.startButton.addEventListener("click", async () => {
@@ -1131,13 +1306,18 @@
             x: 1.5,
             y: 1.5,
             angle: 0,
+            pitch: 0,
             stamina: 100,
+            lives: 3,
             fear: 0,
             hesitation: 0,
             lastCell: { x: 1, y: 1 },
             progressCellTime: 0,
             sprinting: false,
             steadyTime: 0,
+            stepCycle: 0,
+            shoveCooldown: 0,
+            hitCooldown: 0,
           };
 
           this.entities = ENTITY_LIBRARY.map((template, index) => {
@@ -1193,6 +1373,10 @@
           if (down && event.key.toLowerCase() === "e") {
             this.attemptCapture();
           }
+          if (down && (event.code === "Space" || event.key === " ")) {
+            event.preventDefault();
+            this.attemptShove();
+          }
         }
 
         hasPower(id) {
@@ -1200,6 +1384,16 @@
           if (!captured || !captured.captured) return false;
           if (!this.box.overload) return true;
           return Math.sin(this.time * 2.4 + captured.name.length) > -0.25;
+        }
+
+        hasEncounteredEntity(id) {
+          const entity = this.findEntity(id);
+          return !!entity && (
+            entity.captured ||
+            entity.lastSeenAt > 0 ||
+            entity.seenDirectly > 0.2 ||
+            (this.save.seenEntities || []).includes(id)
+          );
         }
 
         findEntity(id) {
@@ -1242,6 +1436,8 @@
           this.time += dt;
           if (this.messageTimer > 0) this.messageTimer -= dt;
           if (this.flashTimer > 0) this.flashTimer -= dt;
+          this.player.hitCooldown = Math.max(0, this.player.hitCooldown - dt);
+          this.player.shoveCooldown = Math.max(0, this.player.shoveCooldown - dt);
 
           this.updatePlayer(dt);
           this.updateEntities(dt);
@@ -1332,9 +1528,16 @@
 
             this.player.hesitation = 0;
             this.player.steadyTime += dt;
+            this.player.stepCycle += dt * moveSpeed * (stabilizing ? 0.55 : 1);
+            const stepThreshold = sprinting ? 0.72 : 0.5;
+            if (this.player.stepCycle >= stepThreshold) {
+              this.player.stepCycle = 0;
+              this.audio.stepEvent(clamp(moveSpeed / 3.2, 0.35, 1), sprinting);
+            }
           } else {
             this.player.hesitation += dt;
             this.player.steadyTime = 0;
+            this.player.stepCycle = 0;
           }
 
           if (sprinting) {
@@ -1666,43 +1869,122 @@
           if (this.box.stability < 20 && !this.box.broken) {
             this.statusEffects.push("Escape state: breach possible");
           }
+          if (this.player.hitCooldown > 0) {
+            this.statusEffects.push("Field recovery window");
+          }
+          if (this.player.shoveCooldown > 0) {
+            this.statusEffects.push("Shove recharging");
+          }
 
           this.player.fear = clamp(this.player.fear, 0, 100);
         }
 
         computeVisibleTarget() {
+          const width = canvas.width;
+          const height = canvas.height;
+          const horizon = this.getHorizon(height);
+          const crosshairX = width / 2;
+          const crosshairY = height / 2;
           const visible = [];
           for (const entity of this.entities) {
             if (entity.captured) continue;
-            const dx = entity.x - this.player.x;
-            const dy = entity.y - this.player.y;
-            const dist = Math.hypot(dx, dy);
-            const angle = wrapAngle(Math.atan2(dx, dy) - this.player.angle);
+            const projection = this.projectEntity(entity, width, height, horizon);
+            const hitbox = this.getEntityScreenHitbox(entity, projection);
             const los = this.hasLineOfSight(this.player.x, this.player.y, entity.x, entity.y);
-            if (!los || dist > 6) continue;
+            if (!los || projection.dist > 6) continue;
+            if (Math.abs(projection.angle) > FOV / 2 + 0.22) continue;
 
             let allowed = true;
             if (entity.id === "silhouette") {
-              allowed = Math.abs(angle) > 0.18 && Math.abs(angle) < 0.48;
+              allowed = Math.abs(projection.angle) > 0.16 && Math.abs(projection.angle) < 0.58;
             } else if (entity.id === "velour") {
-              allowed = Math.abs(angle) < 0.08;
+              allowed = Math.abs(projection.angle) < 0.14;
             } else if (entity.id === "crescent") {
               allowed = entity.visible;
             } else {
-              allowed = Math.abs(angle) < 0.12;
+              allowed = Math.abs(projection.angle) < 0.2;
             }
 
-            if (allowed) visible.push({ entity, dist, angle });
+            const crosshairInside =
+              Math.abs(projection.screenX - crosshairX) <= hitbox.halfWidth &&
+              crosshairY >= hitbox.top &&
+              crosshairY <= hitbox.bottom;
+
+            if (allowed && crosshairInside) {
+              const crosshairError =
+                Math.abs(projection.screenX - crosshairX) +
+                Math.abs(((hitbox.top + hitbox.bottom) / 2) - crosshairY) * 0.35;
+              visible.push({
+                entity,
+                dist: projection.dist,
+                angle: projection.angle,
+                crosshairError,
+              });
+            }
           }
 
-          visible.sort((a, b) => a.dist - b.dist);
+          visible.sort((a, b) => a.crosshairError - b.crosshairError || a.dist - b.dist);
           this.visibleTarget = visible[0] || null;
+        }
+
+        findCaptureCandidate() {
+          if (this.visibleTarget && this.visibleTarget.dist <= MAX_CAPTURE_RANGE + this.getEntityCollisionRadius(this.visibleTarget.entity) * 0.95) {
+            return this.visibleTarget;
+          }
+
+          const width = canvas.width;
+          const height = canvas.height;
+          const horizon = this.getHorizon(height);
+          const crosshairX = width / 2;
+          const crosshairY = height / 2;
+          const candidates = [];
+
+          for (const entity of this.entities) {
+            if (entity.captured) continue;
+            const projection = this.projectEntity(entity, width, height, horizon);
+            const hitbox = this.getEntityScreenHitbox(entity, projection);
+            const captureReach = MAX_CAPTURE_RANGE + hitbox.radius * 0.95;
+            if (projection.dist > captureReach + 0.1) continue;
+            if (!this.hasLineOfSight(this.player.x, this.player.y, entity.x, entity.y)) continue;
+
+            let allowed = true;
+            if (entity.id === "silhouette") {
+              allowed = Math.abs(projection.angle) > 0.08 && Math.abs(projection.angle) < 0.72;
+            } else if (entity.id === "velour") {
+              allowed = Math.abs(projection.angle) < 0.22;
+            } else if (entity.id === "crescent") {
+              allowed = entity.visible;
+            } else {
+              allowed = Math.abs(projection.angle) < 0.32;
+            }
+            if (!allowed) continue;
+
+            const horizontalError = Math.abs(projection.screenX - crosshairX);
+            const verticalError = Math.abs(((hitbox.top + hitbox.bottom) / 2) - crosshairY);
+            const withinWindow =
+              horizontalError <= hitbox.halfWidth + 30 &&
+              crosshairY >= hitbox.top - 24 &&
+              crosshairY <= hitbox.bottom + 24;
+            if (!withinWindow) continue;
+
+            candidates.push({
+              entity,
+              dist: projection.dist,
+              angle: projection.angle,
+              crosshairError: horizontalError + verticalError * 0.28,
+            });
+          }
+
+          candidates.sort((a, b) => a.crosshairError - b.crosshairError || a.dist - b.dist);
+          return candidates[0] || null;
         }
 
         attemptCapture() {
           if (!this.running || this.gameOver) return;
-          const target = this.visibleTarget && this.visibleTarget.entity;
-          if (!target || this.visibleTarget.dist > MAX_CAPTURE_RANGE) {
+          const candidate = this.findCaptureCandidate();
+          const target = candidate && candidate.entity;
+          const captureReach = target ? MAX_CAPTURE_RANGE + this.getEntityCollisionRadius(target) * 0.95 : MAX_CAPTURE_RANGE;
+          if (!target || candidate.dist > captureReach) {
             this.stats.missedCaptures += 1;
             this.noteMistake(0.24, "The box closes on nothing.");
             this.audio.pulseEvent(120, 0.18, 0.05, "square");
@@ -1758,6 +2040,59 @@
           });
         }
 
+        attemptShove() {
+          if (!this.running || this.gameOver) return;
+          if (this.player.shoveCooldown > 0) {
+            this.pushMessage("The field buckles. Wait before shoving again.");
+            return;
+          }
+          if (this.player.stamina < 14) {
+            this.pushMessage("You are too drained to force the field outward.");
+            return;
+          }
+
+          const nearby = this.entities
+            .filter((entity) => !entity.captured)
+            .map((entity) => ({
+              entity,
+              dist: distance(this.player, entity),
+              angle: Math.abs(wrapAngle(Math.atan2(entity.x - this.player.x, entity.y - this.player.y) - this.player.angle)),
+            }))
+            .filter((entry) => entry.dist < 1.15 + this.getEntityCollisionRadius(entry.entity) && entry.angle < 0.7 && this.hasLineOfSight(this.player.x, this.player.y, entry.entity.x, entry.entity.y))
+            .sort((a, b) => a.angle - b.angle || a.dist - b.dist);
+
+          const target = nearby[0] && nearby[0].entity;
+          if (!target) {
+            this.pushMessage("Nothing close enough to shove back.");
+            return;
+          }
+
+          this.player.stamina = Math.max(0, this.player.stamina - 16);
+          this.player.shoveCooldown = 2.2;
+          this.knockbackEntity(target, 1.4);
+          this.flashTimer = Math.max(this.flashTimer, 0.12);
+          this.pushMessage("You force the field outward and drive " + target.name + " back.");
+          this.audio.pulseEvent(260, 0.18, 0.08, "sawtooth");
+        }
+
+        knockbackEntity(entity, amount) {
+          const baseAngle = Math.atan2(entity.x - this.player.x, entity.y - this.player.y);
+          const steps = [amount, amount * 0.72, amount * 0.46, amount * 0.24];
+          for (const step of steps) {
+            const nx = entity.x + Math.sin(baseAngle) * step;
+            const ny = entity.y + Math.cos(baseAngle) * step;
+            if (!this.isWall(nx, ny)) {
+              entity.x = nx;
+              entity.y = ny;
+              entity.dir = wrapAngle(baseAngle);
+              entity.chaseTimer = 0;
+              return true;
+            }
+          }
+          entity.dir = wrapAngle(baseAngle + Math.PI);
+          return false;
+        }
+
         noteMistake(intensity, message) {
           this.stats.mistakes += 1;
           this.player.fear += intensity * 25;
@@ -1773,11 +2108,34 @@
           for (const entity of this.entities) {
             if (entity.captured) continue;
             const dist = distance(this.player, entity);
-            if (dist < 0.42) {
-              this.failRun(entity.name + " reaches you.");
+            if (dist < PLAYER_RADIUS + this.getEntityCollisionRadius(entity)) {
+              this.takeHit(entity);
               return;
             }
           }
+        }
+
+        takeHit(entity) {
+          if (this.player.hitCooldown > 0) return;
+
+          this.player.lives -= 1;
+          this.player.hitCooldown = 1.8;
+          this.player.fear = clamp(this.player.fear + 24, 0, 100);
+          this.box.stability = clamp(this.box.stability - 7, 0, 100);
+          this.knockbackEntity(entity, 1.7);
+          this.flashTimer = Math.max(this.flashTimer, 0.36);
+          HUD.flashOverlay.style.opacity = "0.62";
+          setTimeout(() => {
+            HUD.flashOverlay.style.opacity = "0";
+          }, 140);
+          this.audio.pulseEvent(90, 0.32, 0.11, "square");
+
+          if (this.player.lives <= 0) {
+            this.failRun(entity.name + " breaks through the field.");
+            return;
+          }
+
+          this.pushMessage(entity.name + " tears through the field. " + this.player.lives + " lives remain.");
         }
 
         lightAt(x, y) {
@@ -1803,10 +2161,14 @@
             const x = this.player.x + sin * depth;
             const y = this.player.y + cos * depth;
             if (this.isWall(x, y)) {
-              return depth;
+              return { dist: depth, hitX: x, hitY: y };
             }
           }
-          return 20;
+          return {
+            dist: 20,
+            hitX: this.player.x + sin * 20,
+            hitY: this.player.y + cos * 20,
+          };
         }
 
         hasLineOfSight(x1, y1, x2, y2) {
@@ -1823,10 +2185,268 @@
           return true;
         }
 
+        getHorizon(height) {
+          return height * (0.5 + Math.sin(this.time * 3.2) * this.threatPressure * 0.01) + Math.sin(this.player.pitch) * height * LOOK_PITCH_SCALE;
+        }
+
+        projectEntity(entity, width, height, horizon) {
+          const dx = entity.x - this.player.x;
+          const dy = entity.y - this.player.y;
+          const dist = Math.hypot(dx, dy);
+          const angle = wrapAngle(Math.atan2(dx, dy) - this.player.angle);
+          const scale = entity.id === "relic" ? 0.75 : 1;
+          const screenX = width / 2 + (angle / (FOV / 2)) * (width / 2);
+          const spriteWidth = clamp((height / Math.max(dist, 0.4)) * 0.24 * scale, 10, 260);
+          const spriteHeight = spriteWidth * 1.8;
+          const top = horizon - spriteHeight * 0.52;
+          const bottom = top + spriteHeight;
+          return { dx, dy, dist, angle, screenX, spriteWidth, spriteHeight, top, bottom, scale };
+        }
+
+        getEntityCollisionRadius(entity) {
+          switch (entity.id) {
+            case "relic":
+              return 0.18;
+            case "velour":
+            case "crescent":
+              return 0.2;
+            case "silhouette":
+              return 0.22;
+            case "obsidian":
+              return 0.28;
+            case "lament":
+            case "penance":
+            case "nocturne":
+              return 0.24;
+            default:
+              return 0.23;
+          }
+        }
+
+        getEntityScreenHitbox(entity, projection) {
+          const radius = this.getEntityCollisionRadius(entity);
+          const halfWidth = clamp(projection.spriteWidth * (0.18 + radius * 0.85), 14, projection.spriteWidth * 0.36);
+          const topInset = projection.spriteHeight * 0.12;
+          const bottomInset = projection.spriteHeight * 0.08;
+          return {
+            radius,
+            halfWidth,
+            top: projection.top + topInset,
+            bottom: projection.bottom - bottomInset,
+          };
+        }
+
+        noise2d(x, y) {
+          return fract(Math.sin(x * 127.1 + y * 311.7) * 43758.5453123);
+        }
+
+        drawAmbientDepth(width, height, horizon) {
+          const stress = this.threatPressure + this.player.fear / 100;
+
+          ctx.save();
+          ctx.globalCompositeOperation = "screen";
+          for (let i = 0; i < 26; i += 1) {
+            const t = this.time * 0.08 + i * 7.13;
+            const sx = fract(Math.sin(t * 2.37) * 437.3) * width;
+            const sy = horizon + fract(Math.cos(t * 1.83) * 271.9) * (height - horizon);
+            const size = 1 + fract(Math.sin(t * 4.11) * 91.7) * 2.6;
+            ctx.fillStyle = "rgba(255, 230, 220, " + (0.012 + stress * 0.012).toFixed(3) + ")";
+            ctx.fillRect(sx, sy, size, size);
+          }
+          ctx.restore();
+
+          const fog = ctx.createLinearGradient(0, horizon - height * 0.06, 0, height);
+          fog.addColorStop(0, "rgba(90, 20, 20, 0)");
+          fog.addColorStop(0.45, "rgba(35, 18, 24, " + (0.08 + stress * 0.08).toFixed(3) + ")");
+          fog.addColorStop(1, "rgba(0, 0, 0, 0.34)");
+          ctx.fillStyle = fog;
+          ctx.fillRect(0, horizon - height * 0.06, width, height);
+
+          ctx.save();
+          ctx.strokeStyle = "rgba(255, 255, 255, 0.02)";
+          ctx.lineWidth = 1;
+          for (let i = 0; i < 7; i += 1) {
+            const y = horizon + (height - horizon) * (i / 6);
+            ctx.beginPath();
+            ctx.moveTo(0, y + Math.sin(this.time * 0.5 + i) * 1.5);
+            ctx.lineTo(width, y - Math.cos(this.time * 0.4 + i) * 1.5);
+            ctx.stroke();
+          }
+          ctx.restore();
+        }
+
+        drawWallSlice(screenX, y, sliceWidth, sliceHeight, shade, hit, angle, width, height) {
+          const sideAxis = Math.abs(Math.sin(angle)) > Math.abs(Math.cos(angle)) ? hit.hitY : hit.hitX;
+          const tex = fract(sideAxis);
+          const edgeDark = 1 - clamp(Math.min(tex, 1 - tex) * 5.5, 0, 1);
+          const grime = this.noise2d(Math.floor(hit.hitX * 3), Math.floor(hit.hitY * 3));
+          const vein = Math.sin((hit.hitX * 12.4) + (hit.hitY * 9.7) + this.time * 0.3);
+          const pulse = 0.5 + Math.sin(this.time * 1.4 + hit.hitX * 0.7 + hit.hitY * 0.5) * 0.5;
+          const baseLight = 18 + shade * 26;
+          const wallLight = clamp(baseLight - edgeDark * 9 - grime * 6 + vein * 2, 6, 56);
+
+          ctx.fillStyle = "hsl(" + (10 + shade * 20) + ", 24%, " + wallLight + "%)";
+          ctx.fillRect(screenX, y, sliceWidth, sliceHeight);
+
+          if (tex < 0.08 || tex > 0.92) {
+            ctx.fillStyle = "rgba(15, 8, 10, 0.34)";
+            ctx.fillRect(screenX, y, sliceWidth, sliceHeight);
+          }
+
+          if (grime > 0.56) {
+            ctx.fillStyle = "rgba(18, 10, 12, " + (0.1 + (grime - 0.56) * 0.5).toFixed(3) + ")";
+            ctx.fillRect(screenX, y + sliceHeight * 0.08, sliceWidth, sliceHeight * (0.32 + grime * 0.2));
+          }
+
+          if (vein > 0.78) {
+            ctx.fillStyle = "rgba(120, 26, 26, " + (0.09 + pulse * 0.08).toFixed(3) + ")";
+            ctx.fillRect(screenX, y + sliceHeight * (0.16 + tex * 0.45), sliceWidth, Math.max(2, sliceHeight * 0.06));
+          }
+
+          if (sliceHeight > height * 0.22 && (tex < 0.16 || (tex > 0.44 && tex < 0.56) || tex > 0.84)) {
+            ctx.fillStyle = "rgba(255, 240, 230, 0.035)";
+            ctx.fillRect(screenX, y + sliceHeight * 0.1, sliceWidth, sliceHeight * 0.78);
+          }
+
+          if (sliceHeight > height * 0.28 && pulse > 0.72 && this.box.stability < 40) {
+            ctx.fillStyle = "rgba(255, 80, 80, " + ((1 - this.box.stability / 100) * 0.08).toFixed(3) + ")";
+            ctx.fillRect(screenX, y + sliceHeight * 0.04, sliceWidth, sliceHeight * 0.92);
+          }
+        }
+
+        drawGhostSprite(screenX, y, spriteWidth, spriteHeight, color, flicker) {
+          ctx.save();
+          ctx.globalCompositeOperation = "screen";
+          ctx.fillStyle = color;
+          ctx.beginPath();
+          ctx.moveTo(screenX, y);
+          ctx.quadraticCurveTo(screenX + spriteWidth * 0.42, y + spriteHeight * 0.2, screenX + spriteWidth * 0.18, y + spriteHeight);
+          ctx.quadraticCurveTo(screenX, y + spriteHeight * 0.88, screenX - spriteWidth * 0.18, y + spriteHeight);
+          ctx.quadraticCurveTo(screenX - spriteWidth * 0.42, y + spriteHeight * 0.2, screenX, y);
+          ctx.fill();
+          ctx.fillStyle = "rgba(255,255,255," + (0.04 + flicker * 0.04).toFixed(3) + ")";
+          ctx.fillRect(screenX - spriteWidth * 0.1, y + spriteHeight * 0.18, spriteWidth * 0.2, spriteHeight * 0.55);
+          ctx.restore();
+        }
+
+        drawHorrorEntity(entity, screenX, y, spriteWidth, spriteHeight, dist) {
+          const pulse = 0.5 + Math.sin(this.time * 4 + entity.name.length) * 0.5;
+          const near = clamp(1 - dist / 7, 0, 1);
+
+          ctx.save();
+          ctx.translate(screenX, y);
+
+          ctx.globalCompositeOperation = "screen";
+          const aura = ctx.createRadialGradient(0, spriteHeight * 0.35, 0, 0, spriteHeight * 0.38, spriteWidth * 0.9);
+          aura.addColorStop(0, entity.id === "silhouette" ? "rgba(180,180,210,0.04)" : hexToRgba(entity.color, (0.05 + near * 0.08).toFixed(3)));
+          aura.addColorStop(1, entity.id === "silhouette" ? "rgba(40,40,60,0.0)" : "rgba(255, 120, 120, 0)");
+          ctx.fillStyle = aura;
+          ctx.beginPath();
+          ctx.ellipse(0, spriteHeight * 0.42, spriteWidth * (0.55 + near * 0.08), spriteHeight * (0.7 + pulse * 0.03), 0, 0, TAU);
+          ctx.fill();
+          ctx.globalCompositeOperation = "source-over";
+
+          if (entity.id === "silhouette") {
+            ctx.fillStyle = "rgba(4, 4, 7, 0.96)";
+          } else {
+            const body = ctx.createLinearGradient(0, 0, 0, spriteHeight);
+            body.addColorStop(0, entity.color);
+            body.addColorStop(0.5, "rgba(10, 10, 14, 0.9)");
+            body.addColorStop(1, "rgba(0, 0, 0, 0.2)");
+            ctx.fillStyle = body;
+          }
+
+          ctx.beginPath();
+          ctx.moveTo(0, 0);
+          ctx.quadraticCurveTo(spriteWidth * 0.5, spriteHeight * 0.14, spriteWidth * 0.26, spriteHeight * 0.82);
+          ctx.quadraticCurveTo(spriteWidth * 0.18, spriteHeight * 1.02, spriteWidth * 0.06, spriteHeight);
+          ctx.quadraticCurveTo(0, spriteHeight * 0.9, -spriteWidth * 0.06, spriteHeight);
+          ctx.quadraticCurveTo(-spriteWidth * 0.18, spriteHeight * 1.02, -spriteWidth * 0.26, spriteHeight * 0.82);
+          ctx.quadraticCurveTo(-spriteWidth * 0.5, spriteHeight * 0.14, 0, 0);
+          ctx.fill();
+
+          if (entity.id === "obsidian") {
+            ctx.fillStyle = "rgba(255, 185, 120, 0.42)";
+            for (let i = -2; i <= 2; i += 1) {
+              ctx.beginPath();
+              ctx.moveTo(i * spriteWidth * 0.14, spriteHeight * 0.55);
+              ctx.lineTo(i * spriteWidth * 0.2 + spriteWidth * 0.08, spriteHeight * 0.82);
+              ctx.lineTo(i * spriteWidth * 0.08 - spriteWidth * 0.06, spriteHeight * 0.8);
+              ctx.closePath();
+              ctx.fill();
+            }
+          }
+
+          if (entity.id === "eulogy") {
+            ctx.fillStyle = "rgba(200, 150, 255, 0.18)";
+            ctx.fillRect(-spriteWidth * 0.34, spriteHeight * 0.08, spriteWidth * 0.16, spriteHeight * 0.74);
+            ctx.fillRect(spriteWidth * 0.18, spriteHeight * 0.04, spriteWidth * 0.12, spriteHeight * 0.68);
+          }
+
+          if (entity.id === "crescent") {
+            ctx.strokeStyle = "rgba(220, 240, 255, 0.6)";
+            ctx.lineWidth = Math.max(1.5, spriteWidth * 0.04);
+            ctx.beginPath();
+            ctx.arc(spriteWidth * 0.1, spriteHeight * 0.18, spriteWidth * 0.16, -Math.PI / 2, Math.PI / 2);
+            ctx.stroke();
+          }
+
+          if (entity.id === "relic") {
+            ctx.strokeStyle = "rgba(255, 200, 255, 0.42)";
+            ctx.lineWidth = Math.max(1, spriteWidth * 0.025);
+            ctx.strokeRect(-spriteWidth * 0.16, spriteHeight * 0.18, spriteWidth * 0.32, spriteHeight * 0.18);
+            ctx.strokeRect(-spriteWidth * 0.12, spriteHeight * 0.45, spriteWidth * 0.24, spriteHeight * 0.18);
+          }
+
+          const eyeGlow = entity.id === "velour"
+            ? 0.02
+            : entity.id === "silhouette"
+              ? 0.0
+              : 0.18 + near * 0.18 + pulse * 0.08;
+          if (eyeGlow > 0) {
+            const eyeColor = entity.id === "nocturne"
+              ? "rgba(200, 220, 255,"
+              : entity.id === "penance"
+                ? "rgba(255, 110, 110,"
+                : entity.id === "vespers"
+                  ? "rgba(255, 230, 190,"
+                  : "rgba(255, 245, 245,";
+            ctx.fillStyle = eyeColor + eyeGlow.toFixed(3) + ")";
+            ctx.beginPath();
+            ctx.ellipse(-spriteWidth * 0.08, spriteHeight * 0.24, spriteWidth * 0.05, spriteHeight * 0.018, 0, 0, TAU);
+            ctx.ellipse(spriteWidth * 0.08, spriteHeight * 0.24, spriteWidth * 0.05, spriteHeight * 0.018, 0, 0, TAU);
+            ctx.fill();
+          }
+
+          if (entity.id === "penance" || entity.id === "lament") {
+            ctx.strokeStyle = entity.id === "penance" ? "rgba(255, 90, 90, 0.2)" : "rgba(170, 220, 240, 0.16)";
+            ctx.lineWidth = Math.max(1, spriteWidth * 0.02);
+            for (let i = -1; i <= 1; i += 1) {
+              ctx.beginPath();
+              ctx.moveTo(i * spriteWidth * 0.08, spriteHeight * 0.18);
+              ctx.lineTo(i * spriteWidth * 0.16 + Math.sin(this.time * 2 + i) * 4, spriteHeight * 0.84);
+              ctx.stroke();
+            }
+          }
+
+          if (entity.id === "velour") {
+            ctx.fillStyle = "rgba(240, 240, 240, 0.06)";
+            ctx.fillRect(-spriteWidth * 0.06, spriteHeight * 0.18, spriteWidth * 0.12, spriteHeight * 0.5);
+          }
+
+          if (entity.id === "silhouette") {
+            ctx.strokeStyle = "rgba(180, 180, 220, " + (0.04 + near * 0.08).toFixed(3) + ")";
+            ctx.lineWidth = Math.max(1, spriteWidth * 0.03);
+            ctx.stroke();
+          }
+
+          ctx.restore();
+        }
+
         draw(dt) {
           const width = canvas.width;
           const height = canvas.height;
-          const horizon = height * (0.5 + Math.sin(this.time * 3.2) * this.threatPressure * 0.01);
+          const horizon = this.getHorizon(height);
 
           ctx.clearRect(0, 0, width, height);
 
@@ -1842,22 +2462,22 @@
           ctx.fillStyle = skyGradient;
           ctx.fillRect(0, 0, width, horizon);
 
+          this.drawAmbientDepth(width, height, horizon);
+
           const rayCount = Math.floor(width / 2);
           this.rays = [];
           for (let i = 0; i < rayCount; i += 1) {
             const cameraX = (i / rayCount) - 0.5;
             const angle = this.player.angle + cameraX * FOV;
-            let dist = this.castRay(angle);
-            dist *= Math.cos(cameraX * FOV);
+            const hit = this.castRay(angle);
+            let dist = hit.dist * Math.cos(cameraX * FOV);
             this.rays.push(dist);
 
             const sliceHeight = clamp((height * 0.9) / Math.max(dist, 0.0001), 0, height * 1.5);
             const y = horizon - sliceHeight / 2;
-            const light = clamp(this.lightAt(this.player.x + Math.sin(angle) * dist, this.player.y + Math.cos(angle) * dist), 0.08, 1);
+            const light = clamp(this.lightAt(hit.hitX, hit.hitY), 0.08, 1);
             const shade = clamp(1 - dist / 14, 0, 1) * light;
-            const hue = 14 + shade * 30;
-            ctx.fillStyle = "hsla(" + hue + ", 32%, " + (18 + shade * 28) + "%, 1)";
-            ctx.fillRect(i * 2, y, 3, sliceHeight);
+            this.drawWallSlice(i * 2, y, 3, sliceHeight, shade, hit, angle, width, height);
           }
 
           this.drawWorldEffects(width, height, horizon);
@@ -1965,10 +2585,11 @@
             const dy = entity.y - this.player.y;
             const dist = Math.hypot(dx, dy);
             const angle = wrapAngle(Math.atan2(dx, dy) - this.player.angle);
-            if (Math.abs(angle) > FOV / 2 + 0.2) continue;
+            const closeVisibilityBoost = dist < 1.2 ? 0.55 : 0.2;
+            if (Math.abs(angle) > FOV / 2 + closeVisibilityBoost) continue;
 
-            if (entity.id === "silhouette" && Math.abs(angle) < 0.16) continue;
-            if (entity.id === "velour" && Math.abs(angle) > 0.11) continue;
+            if (entity.id === "silhouette" && Math.abs(angle) < 0.16 && dist > 0.9) continue;
+            if (entity.id === "velour" && Math.abs(angle) > 0.11 && dist > 0.9) continue;
 
             sprites.push({
               x: entity.x,
@@ -1985,28 +2606,21 @@
 
           for (const sprite of sprites) {
             const screenX = width / 2 + (sprite.angle / (FOV / 2)) * (width / 2);
-            const spriteWidth = clamp((height / Math.max(sprite.dist, 0.4)) * 0.24 * sprite.scale, 10, 260);
+            const spriteWidth = clamp((height / Math.max(sprite.dist, 0.22)) * 0.24 * sprite.scale, 10, sprite.entity ? 420 : 260);
             const spriteHeight = spriteWidth * 1.8;
             const y = horizon - spriteHeight * 0.52;
             const rayIndex = Math.floor((screenX / width) * this.rays.length);
             const visibleDepth = this.rays[clamp(rayIndex, 0, this.rays.length - 1)] || 0;
-            if (visibleDepth && sprite.dist > visibleDepth + 0.2) continue;
+            const nearEntity = !!sprite.entity && sprite.dist < 0.95;
+            if (visibleDepth && sprite.dist > visibleDepth + 0.2 && !nearEntity) continue;
 
-            if (sprite.entity) {
-              const body = ctx.createLinearGradient(0, y, 0, y + spriteHeight);
-              body.addColorStop(0, sprite.entity.id === "silhouette" ? "rgba(60,60,60,0.78)" : sprite.color);
-              body.addColorStop(1, "rgba(8, 8, 12, 0.18)");
-              ctx.fillStyle = body;
+            if (!sprite.entity) {
+              this.drawGhostSprite(screenX, y, spriteWidth, spriteHeight, sprite.color, 0.5 + Math.sin(this.time * 3 + sprite.dist) * 0.5);
             } else {
-              ctx.fillStyle = sprite.color;
+              this.drawHorrorEntity(sprite.entity, screenX, y, spriteWidth, spriteHeight, sprite.dist);
             }
 
-            ctx.fillRect(screenX - spriteWidth / 2, y, spriteWidth, spriteHeight);
-
             if (sprite.entity) {
-              ctx.fillStyle = "rgba(255,255,255,0.08)";
-              ctx.fillRect(screenX - spriteWidth / 4, y + spriteHeight * 0.14, spriteWidth / 2, spriteHeight * 0.08);
-
               if (sprite.entity.id === "crescent" && this.hasPower("crescent")) {
                 ctx.strokeStyle = "rgba(200, 235, 255, 0.75)";
                 ctx.strokeRect(screenX - spriteWidth / 2 - 4, y - 10, spriteWidth + 8, 6);
@@ -2056,6 +2670,28 @@
             ctx.fillStyle = "rgba(80, 120, 255, 0.05)";
             ctx.fillRect(-chroma, 0, width, height);
           }
+          const breathing = 0.05 + stress * 0.12 + Math.sin(this.time * 1.4) * 0.02;
+          const tunnel = ctx.createRadialGradient(
+            width / 2,
+            height * 0.52,
+            Math.min(width, height) * 0.18,
+            width / 2,
+            height * 0.52,
+            Math.max(width, height) * 0.7
+          );
+          tunnel.addColorStop(0, "rgba(0,0,0,0)");
+          tunnel.addColorStop(0.72, "rgba(12,6,8," + breathing.toFixed(3) + ")");
+          tunnel.addColorStop(1, "rgba(0,0,0," + (0.24 + stress * 0.18).toFixed(3) + ")");
+          ctx.fillStyle = tunnel;
+          ctx.fillRect(0, 0, width, height);
+
+          if (stress > 0.45) {
+            ctx.fillStyle = "rgba(255, 255, 255, " + ((stress - 0.45) * 0.035).toFixed(3) + ")";
+            for (let i = 0; i < 5; i += 1) {
+              const bandY = (fract(this.time * 0.14 + i * 0.21) * height);
+              ctx.fillRect(0, bandY, width, 1 + i);
+            }
+          }
           ctx.restore();
         }
 
@@ -2068,6 +2704,8 @@
           HUD.staminaValue.textContent = Math.round(this.player.stamina) + "%";
           HUD.threatValue.textContent = Math.round(this.threatPressure * 100) + "%";
           HUD.countValue.textContent = contained + " / " + ENTITY_COUNT;
+          HUD.livesValue.textContent = String(this.player.lives);
+          HUD.shoveValue.textContent = this.player.shoveCooldown > 0 ? this.player.shoveCooldown.toFixed(1) + "s" : "ready";
           HUD.timeValue.textContent = formatTime(this.time);
           HUD.storageValue.textContent = StorageBridge.mode;
           HUD.escapeValue.textContent = this.box.broken
@@ -2100,8 +2738,9 @@
             HUD.boxStateText.textContent = this.box.stateText;
           }
 
-          if (this.visibleTarget && this.visibleTarget.dist <= MAX_CAPTURE_RANGE) {
-            const entity = this.visibleTarget.entity;
+          const captureCandidate = this.findCaptureCandidate();
+          if (captureCandidate && captureCandidate.dist <= MAX_CAPTURE_RANGE + this.getEntityCollisionRadius(captureCandidate.entity) * 0.95) {
+            const entity = captureCandidate.entity;
             HUD.capturePrompt.textContent = "Press E to bind " + entity.name + " into the Red Box";
             HUD.capturePrompt.classList.add("visible");
           } else {
@@ -2113,7 +2752,9 @@
           const nearest = freeEntities[0];
           if (nearest) {
             HUD.targetName.textContent = nearest.name;
-            HUD.targetHint.textContent = nearest.detail;
+            HUD.targetHint.textContent = this.hasEncounteredEntity(nearest.id)
+              ? nearest.detail + " " + nearest.lore
+              : nearest.detail;
           } else {
             HUD.targetName.textContent = "Contained";
             HUD.targetHint.textContent = "Nothing remains outside the Red Box.";
@@ -2179,7 +2820,7 @@
           }
 
           HUD.messagePanel.textContent = this.messageTimer > 0 ? this.message : (
-            this.gameOver ? this.endedBy + " Press Start Run to descend again." : "WASD move. Shift sprint. E capture. F stabilize. Recover clues as the run worsens."
+            this.gameOver ? this.endedBy + " Press Start Run to descend again." : "Mouse look. WASD move. Shift sprint. E capture. Space shove. F stabilize. Recover clues as the run worsens."
           );
         }
 
