@@ -15,6 +15,15 @@
       --accent-soft: rgba(239, 79, 79, 0.18);
       --warn: #ffcf70;
       --good: #8ff0b4;
+      --hud-pad: 22px;
+      --hud-gap: 14px;
+      --side-panel: 300px;
+      --panel-pad-y: 14px;
+      --panel-pad-x: 16px;
+      --panel-font: 13px;
+      --label-font: 11px;
+      --box-size: 148px;
+      --message-width: 760px;
     }
     * {
       box-sizing: border-box;
@@ -57,11 +66,11 @@
     }
 
     #hud {
-      padding: 22px;
+      padding: var(--hud-pad);
       display: grid;
-      grid-template-columns: 300px 1fr 300px;
+      grid-template-columns: var(--side-panel) 1fr var(--side-panel);
       grid-template-rows: auto 1fr auto;
-      gap: 14px;
+      gap: var(--hud-gap);
     }
 
     .panel {
@@ -75,7 +84,7 @@
     #intelPanel,
     #boxPanel,
     #messagePanel {
-      padding: 14px 16px;
+      padding: var(--panel-pad-y) var(--panel-pad-x);
     }
 
     #statusPanel {
@@ -99,12 +108,12 @@
       grid-column: 2;
       grid-row: 3;
       justify-self: center;
-      width: min(760px, 100%);
+      width: min(var(--message-width), 100%);
       text-align: center;
     }
 
     .label {
-      font-size: 11px;
+      font-size: var(--label-font);
       letter-spacing: 0.28em;
       text-transform: uppercase;
       color: var(--muted);
@@ -119,7 +128,7 @@
       display: flex;
       justify-content: space-between;
       gap: 10px;
-      font-size: 13px;
+      font-size: var(--panel-font);
       margin-bottom: 6px;
     }
 
@@ -172,8 +181,8 @@
     }
 
     #boxWidget {
-      width: 148px;
-      height: 148px;
+      width: var(--box-size);
+      height: var(--box-size);
       margin: 10px auto 14px;
       border: 2px solid rgba(255, 95, 95, 0.7);
       background:
@@ -381,8 +390,98 @@
       box-shadow: 0 14px 28px rgba(110, 0, 0, 0.45);
     }
 
+    .buttonRow {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 20px;
+    }
+
     .muted {
       color: var(--muted);
+    }
+
+    body[data-screen="tablet"] {
+      --hud-pad: 16px;
+      --hud-gap: 10px;
+      --side-panel: 250px;
+      --panel-pad-y: 12px;
+      --panel-pad-x: 13px;
+      --panel-font: 12px;
+      --label-font: 10px;
+      --box-size: 126px;
+      --message-width: 620px;
+    }
+
+    body[data-screen="mobile"] {
+      --hud-pad: 10px;
+      --hud-gap: 8px;
+      --side-panel: 1fr;
+      --panel-pad-y: 10px;
+      --panel-pad-x: 11px;
+      --panel-font: 11px;
+      --label-font: 9px;
+      --box-size: 104px;
+      --message-width: 100%;
+    }
+
+    body[data-screen="mobile"] #hud {
+      grid-template-columns: 1fr;
+      grid-template-rows: auto auto auto auto;
+    }
+
+    body[data-screen="mobile"] #statusPanel,
+    body[data-screen="mobile"] #boxPanel,
+    body[data-screen="mobile"] #intelPanel,
+    body[data-screen="mobile"] #messagePanel {
+      grid-column: 1;
+    }
+
+    body[data-screen="mobile"] #statusPanel {
+      grid-row: 1;
+    }
+
+    body[data-screen="mobile"] #boxPanel {
+      grid-row: 2;
+    }
+
+    body[data-screen="mobile"] #intelPanel {
+      grid-row: 3;
+    }
+
+    body[data-screen="mobile"] #messagePanel {
+      grid-row: 4;
+      width: 100%;
+      font-size: 12px;
+    }
+
+    body[data-screen="mobile"] #containedList,
+    body[data-screen="mobile"] #powerList,
+    body[data-screen="mobile"] #effectList,
+    body[data-screen="mobile"] #clueList {
+      max-height: 160px;
+    }
+
+    body[data-screen="mobile"] #capturePrompt {
+      bottom: 10%;
+      width: min(520px, calc(100% - 20px));
+      padding: 12px 14px;
+      font-size: 12px;
+    }
+
+    body[data-screen="mobile"] #crosshair {
+      width: 22px;
+      height: 22px;
+    }
+
+    body[data-screen="mobile"] #crosshair::before {
+      left: 10px;
+      height: 22px;
+    }
+
+    body[data-screen="mobile"] #crosshair::after {
+      top: 10px;
+      width: 22px;
     }
 
     @media (max-width: 980px) {
@@ -477,7 +576,7 @@
       <div id="clueList"></div>
     </div>
 
-    <div id="messagePanel" class="panel">Press `Start Run`, click the screen, look with the mouse, and move with `WASD`. Sprint with `Shift`. Capture with `E`. Shove with `Space`.</div>
+    <div id="messagePanel" class="panel">Press `Start Run`, click the screen, look with the mouse, and move with `WASD`. Sprint with `Shift`. Slide with `C`. Capture with `E`. Shove with `Space`.</div>
   </div>
 
   <div id="menu">
@@ -493,7 +592,7 @@
             `E` captures when an entity is in sight and within range. Each capture grants a power, raises the pressure in the maze, and makes the surviving entities feel more aware of what is being done to them.
           </div>
           <div class="menuBox">
-            `F` stabilizes the Red Box but slows you and burns stamina. The box does not heal rogue entities. It only forces them back into temporary stability while it struggles to contain things that no longer follow rules.
+            `F` stabilizes the Red Box but slows you and burns stamina. `C` lets you slide out of a bad line if you have momentum. The box does not heal rogue entities. It only forces them back into temporary stability while it struggles to contain things that no longer follow rules.
           </div>
           <div class="menuBox">
             If the box fails, escapes return worse than before. You are not just hunting entities. You are trying to stop something spreading, something learning, before there is nothing left to contain and nothing left to protect.
@@ -502,7 +601,10 @@
             Firebase is optional. If you define `window.__DISGRACE_FIREBASE_CONFIG` before this script loads, the game attempts anonymous auth and remote save sync. If it fails, the run continues on `localStorage`.
           </div>
         </div>
-      <button id="startButton">Start Run</button>
+      <div class="buttonRow">
+        <button id="startButton">Start Run</button>
+        <button id="fullscreenButton" type="button">Fullscreen</button>
+      </div>
     </div>
   </div>
 
@@ -786,6 +888,7 @@
         flashOverlay: document.getElementById("flashOverlay"),
         menu: document.getElementById("menu"),
         startButton: document.getElementById("startButton"),
+        fullscreenButton: document.getElementById("fullscreenButton"),
       };
 
       const canvas = document.getElementById("game");
@@ -1196,10 +1299,15 @@
             lastCell: { x: 1, y: 1 },
             progressCellTime: 0,
             sprinting: false,
+            sliding: false,
+            slideTimer: 0,
+            slideCooldown: 0,
+            slideDir: 0,
             steadyTime: 0,
             stepCycle: 0,
             shoveCooldown: 0,
             hitCooldown: 0,
+            vespersRescueUsed: false,
           };
 
           this.box = {
@@ -1231,6 +1339,15 @@
           this.heavyZones = [];
           this.ghostTrails = [];
           this.playerTrails = [];
+          this.predictionMarkers = [];
+          this.extraLifePickups = [];
+          this.lastPredictionPulse = -999;
+          this.nextLifeRollAt = 60;
+          this.screenProfile = {
+            name: "desktop",
+            pixelRatio: 1,
+            rayStep: 2,
+          };
           this.rays = [];
           this.visibleTarget = null;
           this.threatPressure = 0;
@@ -1254,6 +1371,12 @@
           HUD.startButton.addEventListener("click", async () => {
             await this.start();
           });
+          HUD.fullscreenButton.addEventListener("click", async () => {
+            await this.toggleFullscreen();
+          });
+          document.addEventListener("fullscreenchange", () => {
+            HUD.fullscreenButton.textContent = document.fullscreenElement ? "Windowed" : "Fullscreen";
+          });
         }
 
         async boot() {
@@ -1265,6 +1388,7 @@
         }
 
         async start() {
+          await this.enterFullscreen();
           HUD.menu.classList.add("hidden");
           await this.audio.start();
           this.resetRun();
@@ -1273,6 +1397,34 @@
           this.message = "The containment field wakes with you.";
           this.messageTimer = 5;
           requestAnimationFrame((time) => this.frame(time));
+        }
+
+        async enterFullscreen() {
+          if (document.fullscreenElement) return true;
+          try {
+            await document.documentElement.requestFullscreen?.();
+            return !!document.fullscreenElement;
+          } catch (error) {
+            return false;
+          }
+        }
+
+        async exitFullscreen() {
+          if (!document.fullscreenElement) return true;
+          try {
+            await document.exitFullscreen?.();
+            return !document.fullscreenElement;
+          } catch (error) {
+            return false;
+          }
+        }
+
+        async toggleFullscreen() {
+          if (document.fullscreenElement) {
+            await this.exitFullscreen();
+          } else {
+            await this.enterFullscreen();
+          }
         }
 
         resetRun() {
@@ -1314,11 +1466,20 @@
             lastCell: { x: 1, y: 1 },
             progressCellTime: 0,
             sprinting: false,
+            sliding: false,
+            slideTimer: 0,
+            slideCooldown: 0,
+            slideDir: 0,
             steadyTime: 0,
             stepCycle: 0,
             shoveCooldown: 0,
             hitCooldown: 0,
+            vespersRescueUsed: false,
           };
+          this.predictionMarkers = [];
+          this.extraLifePickups = [];
+          this.lastPredictionPulse = -999;
+          this.nextLifeRollAt = 60;
 
           this.entities = ENTITY_LIBRARY.map((template, index) => {
             const spawn = this.pickSpawn(index + 3);
@@ -1334,6 +1495,7 @@
               dir: this.rng() * TAU,
               speedBias: 0.9 + this.rng() * 0.5,
               captured: false,
+              active: false,
               escaped: false,
               visible: true,
               phase: this.rng(),
@@ -1352,6 +1514,8 @@
               lastSeenAt: 0,
             };
           });
+
+          this.syncActiveEntities();
 
           this.renderHud();
         }
@@ -1372,6 +1536,9 @@
           this.keys[event.key.toLowerCase()] = down;
           if (down && event.key.toLowerCase() === "e") {
             this.attemptCapture();
+          }
+          if (down && (event.key.toLowerCase() === "c" || event.code === "KeyC")) {
+            this.attemptSlide();
           }
           if (down && (event.code === "Space" || event.key === " ")) {
             event.preventDefault();
@@ -1398,6 +1565,41 @@
 
         findEntity(id) {
           return this.entities.find((entity) => entity.id === id);
+        }
+
+        isEntityActive(entity) {
+          return !entity.captured && entity.active;
+        }
+
+        activateEntity(entity, reposition = true) {
+          entity.active = true;
+          if (reposition) {
+            const spot = this.pickSpawn(Math.floor(this.time * 100) + entity.name.length + Math.floor(this.rng() * 17));
+            entity.x = spot.x;
+            entity.y = spot.y;
+          }
+        }
+
+        syncActiveEntities(limit = 2) {
+          const loose = this.entities.filter((entity) => !entity.captured);
+          const maxActive = Math.min(limit, loose.length);
+          let active = loose.filter((entity) => entity.active);
+
+          if (active.length > maxActive) {
+            const keep = new Set([...active].sort(() => this.rng() - 0.5).slice(0, maxActive).map((entity) => entity.id));
+            for (const entity of active) {
+              if (!keep.has(entity.id)) entity.active = false;
+            }
+            active = loose.filter((entity) => entity.active);
+          }
+
+          if (active.length < maxActive) {
+            const dormant = loose.filter((entity) => !entity.active);
+            const needed = maxActive - active.length;
+            for (const entity of [...dormant].sort(() => this.rng() - 0.5).slice(0, needed)) {
+              this.activateEntity(entity, true);
+            }
+          }
         }
 
         isWall(x, y) {
@@ -1438,11 +1640,16 @@
           if (this.flashTimer > 0) this.flashTimer -= dt;
           this.player.hitCooldown = Math.max(0, this.player.hitCooldown - dt);
           this.player.shoveCooldown = Math.max(0, this.player.shoveCooldown - dt);
+          this.player.slideCooldown = Math.max(0, this.player.slideCooldown - dt);
+          this.player.slideTimer = Math.max(0, this.player.slideTimer - dt);
+          this.player.sliding = this.player.slideTimer > 0;
+          this.syncActiveEntities();
 
           this.updatePlayer(dt);
           this.updateEntities(dt);
           this.updateContainment(dt);
           this.updateEffects(dt);
+          this.updatePickups(dt);
           this.updateClues();
           this.computeVisibleTarget();
           this.checkThreats();
@@ -1481,6 +1688,7 @@
           const baseSpeed = sprinting ? 3.2 : 2.1;
           let moveSpeed = baseSpeed;
           if (stabilizing) moveSpeed *= 0.58;
+          if (this.player.sliding) moveSpeed = Math.max(moveSpeed, 4.9 + this.player.slideTimer * 1.1);
 
           let burden = 0;
           for (const zone of this.heavyZones) {
@@ -1504,9 +1712,11 @@
           }
 
           const moveAngle = Math.atan2(strafe, forward || 0.0001);
-          const moveAmount = Math.hypot(forward, strafe);
+          const moveAmount = this.player.sliding ? 1 : Math.hypot(forward, strafe);
           if (moveAmount > 0.05) {
-            const angle = this.player.angle + moveAngle;
+            const angle = this.player.sliding
+              ? this.player.slideDir
+              : this.player.angle + moveAngle;
             const dx = Math.sin(angle) * moveSpeed * dt * Math.min(1, moveAmount);
             const dy = Math.cos(angle) * moveSpeed * dt * Math.min(1, moveAmount);
             const nextX = this.player.x + dx;
@@ -1528,11 +1738,11 @@
 
             this.player.hesitation = 0;
             this.player.steadyTime += dt;
-            this.player.stepCycle += dt * moveSpeed * (stabilizing ? 0.55 : 1);
+            this.player.stepCycle += dt * moveSpeed * (stabilizing ? 0.55 : this.player.sliding ? 0.8 : 1);
             const stepThreshold = sprinting ? 0.72 : 0.5;
             if (this.player.stepCycle >= stepThreshold) {
               this.player.stepCycle = 0;
-              this.audio.stepEvent(clamp(moveSpeed / 3.2, 0.35, 1), sprinting);
+              this.audio.stepEvent(clamp(moveSpeed / 4.9, 0.35, 1), sprinting || this.player.sliding);
             }
           } else {
             this.player.hesitation += dt;
@@ -1540,7 +1750,9 @@
             this.player.stepCycle = 0;
           }
 
-          if (sprinting) {
+          if (this.player.sliding) {
+            this.player.stamina = Math.max(0, this.player.stamina - dt * 8);
+          } else if (sprinting) {
             this.player.stamina = Math.max(0, this.player.stamina - dt * 18);
           } else if (stabilizing) {
             this.player.stamina = Math.max(0, this.player.stamina - dt * 13);
@@ -1572,7 +1784,7 @@
         }
 
         updateEntities(dt) {
-          const freeEntities = this.entities.filter((entity) => !entity.captured);
+          const freeEntities = this.entities.filter((entity) => this.isEntityActive(entity));
           const pressure = [];
 
           for (const entity of freeEntities) {
@@ -1814,9 +2026,10 @@
         triggerEscape(count) {
           const captured = this.entities.filter((entity) => entity.captured);
           if (!captured.length) return;
-          const pool = [...captured].sort(() => this.rng() - 0.5).slice(0, count);
+          const pool = [...captured].sort(() => this.rng() - 0.5).slice(0, Math.min(2, count, captured.length));
           for (const entity of pool) {
             entity.captured = false;
+            entity.active = false;
             entity.escaped = true;
             entity.x = this.player.x + Math.sin(this.time + entity.name.length) * 2.2;
             entity.y = this.player.y + Math.cos(this.time + entity.name.length) * 2.2;
@@ -1828,18 +2041,21 @@
             this.pushMessage(entity.name + " slips out of the Red Box.");
             this.audio.pulseEvent(170, 0.28, 0.07, "square");
           }
+          this.syncActiveEntities();
         }
 
         releaseAll() {
           for (const entity of this.entities) {
             if (entity.captured) {
               entity.captured = false;
+              entity.active = false;
               entity.escaped = true;
               const spot = this.pickSpawn(Math.floor(this.time * 100) + entity.name.length);
               entity.x = spot.x;
               entity.y = spot.y;
             }
           }
+          this.syncActiveEntities();
         }
 
         updateEffects(dt) {
@@ -1847,20 +2063,26 @@
           this.heavyZones = this.heavyZones.filter((zone) => (zone.ttl -= dt) > 0);
           this.ghostTrails = this.ghostTrails.filter((trail) => (trail.ttl -= dt) > 0);
           this.playerTrails = this.playerTrails.filter((trail) => (trail.ttl -= dt) > 0);
+          this.predictionMarkers = this.predictionMarkers.filter((marker) => (marker.ttl -= dt) > 0);
           this.statusEffects = [];
 
+          if (this.hasPower("relic") && this.time - this.lastPredictionPulse > 5) {
+            this.lastPredictionPulse = this.time;
+            this.refreshPredictionMarkers();
+          }
+
           const velour = this.findEntity("velour");
-          if (velour && !velour.captured && distance(this.player, velour) < velour.silenceRadius && !this.hasPower("velour")) {
+          if (velour && this.isEntityActive(velour) && distance(this.player, velour) < velour.silenceRadius && !this.hasPower("velour")) {
             this.player.fear += dt * 4;
             this.statusEffects.push("Velour silence field");
           }
           const lament = this.findEntity("lament");
-          if (lament && !lament.captured && distance(this.player, lament) < 4) {
+          if (lament && this.isEntityActive(lament) && distance(this.player, lament) < 4) {
             this.player.fear += dt * 3;
             this.statusEffects.push("Lament burden field");
           }
           const nocturne = this.findEntity("nocturne");
-          if (nocturne && !nocturne.captured && distance(this.player, nocturne) < 5) {
+          if (nocturne && this.isEntityActive(nocturne) && distance(this.player, nocturne) < 5) {
             this.statusEffects.push("Nocturne dimming nearby lights");
           }
           if (this.box.overload) {
@@ -1875,6 +2097,15 @@
           if (this.player.shoveCooldown > 0) {
             this.statusEffects.push("Shove recharging");
           }
+          if (this.player.sliding) {
+            this.statusEffects.push("Sliding burst");
+          }
+          if (this.player.slideCooldown > 0) {
+            this.statusEffects.push("Slide recharging");
+          }
+          if (this.extraLifePickups.length) {
+            this.statusEffects.push("Life echo detected in the maze");
+          }
 
           this.player.fear = clamp(this.player.fear, 0, 100);
         }
@@ -1887,7 +2118,7 @@
           const crosshairY = height / 2;
           const visible = [];
           for (const entity of this.entities) {
-            if (entity.captured) continue;
+            if (!this.isEntityActive(entity)) continue;
             const projection = this.projectEntity(entity, width, height, horizon);
             const hitbox = this.getEntityScreenHitbox(entity, projection);
             const los = this.hasLineOfSight(this.player.x, this.player.y, entity.x, entity.y);
@@ -1940,7 +2171,7 @@
           const candidates = [];
 
           for (const entity of this.entities) {
-            if (entity.captured) continue;
+            if (!this.isEntityActive(entity)) continue;
             const projection = this.projectEntity(entity, width, height, horizon);
             const hitbox = this.getEntityScreenHitbox(entity, projection);
             const captureReach = MAX_CAPTURE_RANGE + hitbox.radius * 0.95;
@@ -2021,6 +2252,7 @@
           }
 
           target.captured = true;
+          target.active = false;
           target.escaped = false;
           this.stats.captures += 1;
           this.box.stability -= 8 + this.stats.captures * 1.45;
@@ -2038,6 +2270,7 @@
             powersUnlocked: Array.from(new Set([...(this.save.powersUnlocked || []), target.id])),
             seenEntities: Array.from(new Set([...(this.save.seenEntities || []), target.id])),
           });
+          this.syncActiveEntities();
         }
 
         attemptShove() {
@@ -2052,7 +2285,7 @@
           }
 
           const nearby = this.entities
-            .filter((entity) => !entity.captured)
+            .filter((entity) => this.isEntityActive(entity))
             .map((entity) => ({
               entity,
               dist: distance(this.player, entity),
@@ -2073,6 +2306,30 @@
           this.flashTimer = Math.max(this.flashTimer, 0.12);
           this.pushMessage("You force the field outward and drive " + target.name + " back.");
           this.audio.pulseEvent(260, 0.18, 0.08, "sawtooth");
+        }
+
+        attemptSlide() {
+          if (!this.running || this.gameOver) return;
+          if (this.player.slideCooldown > 0 || this.player.sliding) return;
+          if (!this.player.sprinting || this.keys["f"]) {
+            this.pushMessage("You need sprint momentum before you can slide.");
+            return;
+          }
+          if (this.player.stamina < 12) {
+            this.pushMessage("You are too drained to drop into a slide.");
+            return;
+          }
+
+          const forward = (this.keys["w"] ? 1 : 0) - (this.keys["s"] ? 1 : 0);
+          const strafe = (this.keys["d"] ? 1 : 0) - (this.keys["a"] ? 1 : 0);
+          const moveAngle = Math.atan2(strafe, forward || 0.0001);
+          this.player.slideDir = this.player.angle + moveAngle;
+          this.player.slideTimer = 0.8;
+          this.player.slideCooldown = 2.4;
+          this.player.sliding = true;
+          this.player.stamina = Math.max(0, this.player.stamina - 14);
+          this.flashTimer = Math.max(this.flashTimer, 0.08);
+          this.pushMessage("You drop low and slide through the corridor.");
         }
 
         knockbackEntity(entity, amount) {
@@ -2106,7 +2363,7 @@
 
         checkThreats() {
           for (const entity of this.entities) {
-            if (entity.captured) continue;
+            if (!this.isEntityActive(entity)) continue;
             const dist = distance(this.player, entity);
             if (dist < PLAYER_RADIUS + this.getEntityCollisionRadius(entity)) {
               this.takeHit(entity);
@@ -2117,6 +2374,23 @@
 
         takeHit(entity) {
           if (this.player.hitCooldown > 0) return;
+
+          if (this.player.lives <= 1 && this.hasPower("vespers") && !this.player.vespersRescueUsed) {
+            this.player.vespersRescueUsed = true;
+            this.player.hitCooldown = 1.8;
+            this.player.fear = clamp(this.player.fear + 18, 0, 100);
+            this.box.stability = clamp(this.box.stability - 4, 0, 100);
+            this.teleportPlayerAway(entity);
+            this.knockbackEntity(entity, 1.2);
+            this.flashTimer = Math.max(this.flashTimer, 0.42);
+            HUD.flashOverlay.style.opacity = "0.7";
+            setTimeout(() => {
+              HUD.flashOverlay.style.opacity = "0";
+            }, 160);
+            this.audio.pulseEvent(320, 0.34, 0.12, "triangle");
+            this.pushMessage("Vespers bends the field. You are pulled far from the killing blow.");
+            return;
+          }
 
           this.player.lives -= 1;
           this.player.hitCooldown = 1.8;
@@ -2136,6 +2410,112 @@
           }
 
           this.pushMessage(entity.name + " tears through the field. " + this.player.lives + " lives remain.");
+        }
+
+        teleportPlayerAway(entity) {
+          const origin = { x: this.player.x, y: this.player.y };
+          const candidates = this.floorCells
+            .map((cell) => {
+              const spot = { x: cell.x + 0.5, y: cell.y + 0.5 };
+              return {
+                x: spot.x,
+                y: spot.y,
+                score:
+                  Math.hypot(spot.x - entity.x, spot.y - entity.y) * 1.6 +
+                  Math.hypot(spot.x - origin.x, spot.y - origin.y),
+              };
+            })
+            .filter((spot) => spot.score > 16)
+            .sort((a, b) => b.score - a.score);
+          const target = candidates[Math.floor(this.rng() * Math.min(8, candidates.length))] || candidates[0];
+          if (!target) return;
+          this.player.x = target.x;
+          this.player.y = target.y;
+          this.player.lastCell = { x: Math.floor(target.x), y: Math.floor(target.y) };
+          this.player.progressCellTime = 0;
+          this.player.slideTimer = 0;
+          this.player.sliding = false;
+        }
+
+        updatePickups(dt) {
+          while (this.time >= this.nextLifeRollAt) {
+            this.nextLifeRollAt += 60;
+            if (this.rng() < 0.05) {
+              this.spawnExtraLife();
+            }
+          }
+
+          this.extraLifePickups = this.extraLifePickups.filter((pickup) => {
+            pickup.ttl -= dt;
+            if (distance(this.player, pickup) < 0.55) {
+              this.player.lives += 1;
+              this.pushMessage("A life echo stabilizes around you. +1 life.");
+              this.audio.pulseEvent(540, 0.22, 0.09, "sine");
+              return false;
+            }
+            return pickup.ttl > 0;
+          });
+        }
+
+        spawnExtraLife() {
+          const candidates = this.floorCells
+            .map((cell) => ({ x: cell.x + 0.5, y: cell.y + 0.5 }))
+            .filter((cell) => distance(this.player, cell) > 4.5);
+          if (!candidates.length) return;
+          const pick = candidates[Math.floor(this.rng() * candidates.length)];
+          this.extraLifePickups.push({ x: pick.x, y: pick.y, ttl: 55 });
+          this.pushMessage("A fragile life echo forms somewhere in the maze.");
+        }
+
+        refreshPredictionMarkers() {
+          const freeEntities = this.entities.filter((entity) => this.isEntityActive(entity));
+          if (!freeEntities.length) return;
+          const shuffled = [...freeEntities].sort(() => this.rng() - 0.5);
+          const sampleSize = Math.max(1, Math.floor(freeEntities.length / 6));
+          this.predictionMarkers = [];
+
+          for (const entity of shuffled.slice(0, sampleSize)) {
+            const forecast = this.predictEntityDestination(entity);
+            if (!forecast) continue;
+            this.predictionMarkers.push({
+              x: forecast.x,
+              y: forecast.y,
+              ttl: 5,
+              entityId: entity.id,
+            });
+          }
+        }
+
+        predictEntityDestination(entity) {
+          if (entity.id === "relic") {
+            const nextNode = entity.nodes[(entity.nodeIndex + 1) % entity.nodes.length];
+            return { x: nextNode.x, y: nextNode.y };
+          }
+          if (entity.id === "vespers" && entity.pauseTimer > 0) {
+            const target = this.pickSpawn(Math.floor((this.time + 5) * 10) + entity.name.length);
+            return { x: target.x, y: target.y };
+          }
+
+          let x = entity.x;
+          let y = entity.y;
+          const speed = entity.id === "silhouette"
+            ? 1.6
+            : entity.id === "nocturne"
+              ? 1.4
+              : entity.id === "lament"
+                ? 0.95
+                : 1.15;
+          const step = 0.15;
+          for (let time = 0; time < 5; time += step) {
+            const nx = x + Math.sin(entity.dir) * speed * step;
+            const ny = y + Math.cos(entity.dir) * speed * step;
+            if (this.isWall(nx, y) || this.isWall(x, ny)) {
+              break;
+            }
+            x = nx;
+            y = ny;
+          }
+          return { x, y };
         }
 
         lightAt(x, y) {
@@ -2464,7 +2844,8 @@
 
           this.drawAmbientDepth(width, height, horizon);
 
-          const rayCount = Math.floor(width / 2);
+          const rayStep = this.screenProfile?.rayStep || 2;
+          const rayCount = Math.max(120, Math.floor(width / rayStep));
           this.rays = [];
           for (let i = 0; i < rayCount; i += 1) {
             const cameraX = (i / rayCount) - 0.5;
@@ -2539,6 +2920,41 @@
             ctx.closePath();
             ctx.fill();
           }
+
+          for (const marker of this.predictionMarkers) {
+            const dx = marker.x - this.player.x;
+            const dy = marker.y - this.player.y;
+            const dist = Math.hypot(dx, dy);
+            if (dist > 12) continue;
+            const angle = wrapAngle(Math.atan2(dx, dy) - this.player.angle);
+            if (Math.abs(angle) > FOV / 2) continue;
+            const sx = width / 2 + (angle / (FOV / 2)) * (width / 2);
+            const sy = horizon + height / Math.max(dist, 1) * 0.38;
+            const pulse = 0.45 + Math.sin(this.time * 5 + dist) * 0.2;
+            ctx.strokeStyle = "rgba(255, 190, 235, " + pulse.toFixed(3) + ")";
+            ctx.lineWidth = 2;
+            ctx.strokeRect(sx - 10, sy - 10, 20, 20);
+          }
+
+          for (const pickup of this.extraLifePickups) {
+            const dx = pickup.x - this.player.x;
+            const dy = pickup.y - this.player.y;
+            const dist = Math.hypot(dx, dy);
+            if (dist > 12) continue;
+            const angle = wrapAngle(Math.atan2(dx, dy) - this.player.angle);
+            if (Math.abs(angle) > FOV / 2) continue;
+            const sx = width / 2 + (angle / (FOV / 2)) * (width / 2);
+            const sy = horizon + height / Math.max(dist, 1) * 0.36;
+            const pulse = 0.7 + Math.sin(this.time * 6 + dist) * 0.18;
+            ctx.strokeStyle = "rgba(160, 255, 190, " + pulse.toFixed(3) + ")";
+            ctx.lineWidth = 2.4;
+            ctx.beginPath();
+            ctx.moveTo(sx - 7, sy);
+            ctx.lineTo(sx + 7, sy);
+            ctx.moveTo(sx, sy - 7);
+            ctx.lineTo(sx, sy + 7);
+            ctx.stroke();
+          }
         }
 
         drawEntities(width, height, horizon) {
@@ -2578,7 +2994,7 @@
           }
 
           for (const entity of this.entities) {
-            if (entity.captured) continue;
+            if (!this.isEntityActive(entity)) continue;
             if (entity.id === "crescent" && !entity.visible) continue;
 
             const dx = entity.x - this.player.x;
@@ -2655,7 +3071,7 @@
           canvas.style.filter =
             "contrast(" + (1.02 + stress * 0.06 + (this.box.stability < 50 ? 0.03 : 0)).toFixed(2) + ") " +
             "saturate(" + (0.86 + stress * 0.18).toFixed(2) + ") " +
-            "blur(" + (stress * (this.findEntity("lament") && !this.findEntity("lament").captured ? 0.55 : 0.18)).toFixed(2) + "px)" +
+            "blur(" + (stress * (this.findEntity("lament") && this.isEntityActive(this.findEntity("lament")) ? 0.55 : 0.18)).toFixed(2) + "px)" +
             " hue-rotate(" + ((this.box.overload ? Math.sin(this.time * 8) * 8 : 0)).toFixed(2) + "deg)";
 
           const glitch = document.getElementById("glitchOverlay");
@@ -2747,7 +3163,7 @@
             HUD.capturePrompt.classList.remove("visible");
           }
 
-          const freeEntities = this.entities.filter((entity) => !entity.captured);
+          const freeEntities = this.entities.filter((entity) => this.isEntityActive(entity));
           freeEntities.sort((a, b) => distance(this.player, a) - distance(this.player, b));
           const nearest = freeEntities[0];
           if (nearest) {
@@ -2820,7 +3236,7 @@
           }
 
           HUD.messagePanel.textContent = this.messageTimer > 0 ? this.message : (
-            this.gameOver ? this.endedBy + " Press Start Run to descend again." : "Mouse look. WASD move. Shift sprint. E capture. Space shove. F stabilize. Recover clues as the run worsens."
+            this.gameOver ? this.endedBy + " Press Start Run to descend again." : "Mouse look. WASD move. Shift sprint. C slide. E capture. Space shove. F stabilize. Recover clues as the run worsens."
           );
         }
 
@@ -2870,7 +3286,32 @@
         }
 
         resize() {
-          const scale = Math.min(window.devicePixelRatio || 1, 2);
+          const width = window.innerWidth;
+          const height = window.innerHeight;
+          const shortest = Math.min(width, height);
+          const isMobile = width <= 680 || shortest <= 430;
+          const isTablet = !isMobile && width <= 1100;
+
+          this.screenProfile = isMobile
+            ? {
+                name: "mobile",
+                pixelRatio: Math.min(window.devicePixelRatio || 1, 1.25),
+                rayStep: 3.8,
+              }
+            : isTablet
+              ? {
+                  name: "tablet",
+                  pixelRatio: Math.min(window.devicePixelRatio || 1, 1.5),
+                  rayStep: 2.8,
+                }
+              : {
+                  name: "desktop",
+                  pixelRatio: Math.min(window.devicePixelRatio || 1, 2),
+                  rayStep: 2,
+                };
+
+          document.body.dataset.screen = this.screenProfile.name;
+          const scale = this.screenProfile.pixelRatio;
           canvas.width = Math.floor(window.innerWidth * scale);
           canvas.height = Math.floor(window.innerHeight * scale);
           canvas.style.width = window.innerWidth + "px";
