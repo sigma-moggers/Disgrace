@@ -113,4 +113,4 @@ Fear comes from:
 
 ## 💀 End Condition
 - Total box failure
-- Player overwhelmed
+- Player overwhelmed/dead
