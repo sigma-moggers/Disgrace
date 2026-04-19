@@ -3,6 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#050507" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="Disgrace" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="application-name" content="Disgrace" />
+  <link rel="manifest" href="site.webmanifest" />
   <title>Disgrace</title>
   <style>
     :root {
@@ -15,6 +22,19 @@
       --accent-soft: rgba(239, 79, 79, 0.18);
       --warn: #ffcf70;
       --good: #8ff0b4;
+      --hud-pad: 22px;
+      --hud-gap: 14px;
+      --side-panel: 300px;
+      --panel-pad-y: 14px;
+      --panel-pad-x: 16px;
+      --panel-font: 13px;
+      --label-font: 11px;
+      --box-size: 148px;
+      --message-width: 760px;
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-right: env(safe-area-inset-right, 0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+      --safe-left: env(safe-area-inset-left, 0px);
     }
     * {
       box-sizing: border-box;
@@ -37,6 +57,7 @@
     body {
       position: relative;
       user-select: none;
+      overscroll-behavior: none;
     }
 
     canvas {
@@ -57,11 +78,15 @@
     }
 
     #hud {
-      padding: 22px;
+      padding:
+        calc(var(--hud-pad) + var(--safe-top))
+        calc(var(--hud-pad) + var(--safe-right))
+        calc(var(--hud-pad) + var(--safe-bottom))
+        calc(var(--hud-pad) + var(--safe-left));
       display: grid;
-      grid-template-columns: 300px 1fr 300px;
+      grid-template-columns: var(--side-panel) 1fr var(--side-panel);
       grid-template-rows: auto 1fr auto;
-      gap: 14px;
+      gap: var(--hud-gap);
     }
 
     .panel {
@@ -75,7 +100,7 @@
     #intelPanel,
     #boxPanel,
     #messagePanel {
-      padding: 14px 16px;
+      padding: var(--panel-pad-y) var(--panel-pad-x);
     }
 
     #statusPanel {
@@ -99,12 +124,12 @@
       grid-column: 2;
       grid-row: 3;
       justify-self: center;
-      width: min(760px, 100%);
+      width: min(var(--message-width), 100%);
       text-align: center;
     }
 
     .label {
-      font-size: 11px;
+      font-size: var(--label-font);
       letter-spacing: 0.28em;
       text-transform: uppercase;
       color: var(--muted);
@@ -119,7 +144,7 @@
       display: flex;
       justify-content: space-between;
       gap: 10px;
-      font-size: 13px;
+      font-size: var(--panel-font);
       margin-bottom: 6px;
     }
 
@@ -171,9 +196,110 @@
       opacity: 1;
     }
 
+    #touchControls {
+      position: absolute;
+      inset: 0;
+      display: none;
+      pointer-events: none;
+      z-index: 8;
+    }
+
+    .touchZone,
+    .touchButton {
+      pointer-events: auto;
+      touch-action: none;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+
+    #movePad {
+      position: absolute;
+      left: max(18px, calc(var(--safe-left) + 12px));
+      bottom: max(18px, calc(var(--safe-bottom) + 12px));
+      width: 138px;
+      height: 138px;
+      border-radius: 50%;
+      border: 1px solid rgba(255, 140, 140, 0.22);
+      background:
+        radial-gradient(circle at 30% 30%, rgba(255, 120, 120, 0.16), transparent 38%),
+        rgba(10, 9, 15, 0.28);
+      backdrop-filter: blur(10px);
+      box-shadow: inset 0 0 30px rgba(255, 255, 255, 0.03);
+    }
+
+    #moveStick {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 52px;
+      height: 52px;
+      transform: translate(-50%, -50%);
+      border-radius: 50%;
+      background: rgba(255, 210, 210, 0.16);
+      border: 1px solid rgba(255, 200, 200, 0.26);
+      box-shadow: 0 0 24px rgba(255, 80, 80, 0.14);
+    }
+
+    #lookPad {
+      position: absolute;
+      right: max(12px, calc(var(--safe-right) + 8px));
+      bottom: max(22px, calc(var(--safe-bottom) + 18px));
+      width: min(44vw, 280px);
+      height: min(34vh, 260px);
+      border: 1px dashed rgba(255, 160, 160, 0.14);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0.01));
+      backdrop-filter: blur(8px);
+    }
+
+    #lookPadLabel {
+      position: absolute;
+      top: 10px;
+      left: 12px;
+      font-size: 10px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: rgba(240, 220, 220, 0.5);
+    }
+
+    #mobileButtons {
+      position: absolute;
+      right: max(14px, calc(var(--safe-right) + 10px));
+      bottom: max(22px, calc(var(--safe-bottom) + 18px));
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 74px));
+      gap: 10px;
+      align-content: end;
+      width: 160px;
+    }
+
+    .touchButton {
+      appearance: none;
+      border: 1px solid rgba(255, 130, 130, 0.28);
+      background: rgba(12, 10, 16, 0.54);
+      color: #f8ece6;
+      min-height: 54px;
+      padding: 10px 8px;
+      font: inherit;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      backdrop-filter: blur(12px);
+      box-shadow: inset 0 0 24px rgba(255, 255, 255, 0.02);
+    }
+
+    .touchButton:active,
+    .touchButton.active {
+      background: rgba(90, 18, 18, 0.68);
+      border-color: rgba(255, 170, 170, 0.42);
+    }
+
+    .touchButton.primary {
+      grid-column: span 2;
+      min-height: 60px;
+    }
+
     #boxWidget {
-      width: 148px;
-      height: 148px;
+      width: var(--box-size);
+      height: var(--box-size);
       margin: 10px auto 14px;
       border: 2px solid rgba(255, 95, 95, 0.7);
       background:
@@ -381,8 +507,228 @@
       box-shadow: 0 14px 28px rgba(110, 0, 0, 0.45);
     }
 
+    .buttonRow {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 20px;
+    }
+
     .muted {
       color: var(--muted);
+    }
+
+    .hudButton {
+      width: 100%;
+      margin-top: 10px;
+      padding: 10px 12px;
+      font-size: 12px;
+      letter-spacing: 0.14em;
+    }
+
+    #compassWidget {
+      width: 86px;
+      height: 86px;
+      margin: 10px auto 12px;
+      border-radius: 50%;
+      border: 1px solid rgba(255, 170, 170, 0.24);
+      background:
+        radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.05), transparent 58%),
+        rgba(8, 8, 12, 0.44);
+      position: relative;
+      box-shadow: inset 0 0 20px rgba(255, 255, 255, 0.03);
+    }
+
+    #compassWidget::before,
+    #compassWidget::after {
+      content: "";
+      position: absolute;
+      background: rgba(255, 230, 230, 0.15);
+    }
+
+    #compassWidget::before {
+      left: 50%;
+      top: 8px;
+      width: 1px;
+      height: calc(100% - 16px);
+      transform: translateX(-50%);
+    }
+
+    #compassWidget::after {
+      top: 50%;
+      left: 8px;
+      height: 1px;
+      width: calc(100% - 16px);
+      transform: translateY(-50%);
+    }
+
+    #compassNeedle {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 4px;
+      height: 30px;
+      transform: translate(-50%, -82%) rotate(0deg);
+      transform-origin: 50% 82%;
+      background: linear-gradient(180deg, rgba(255, 120, 120, 1), rgba(255, 120, 120, 0.18));
+      box-shadow: 0 0 14px rgba(255, 80, 80, 0.28);
+      clip-path: polygon(50% 0%, 100% 26%, 68% 100%, 32% 100%, 0% 26%);
+    }
+
+    #compassLabel {
+      text-align: center;
+      font-size: 12px;
+      color: #dcc8c0;
+      line-height: 1.35;
+      min-height: 32px;
+    }
+
+    #browserPrompt {
+      display: none;
+      margin-top: 16px;
+      padding: 14px 16px;
+      border: 1px solid rgba(255, 150, 150, 0.2);
+      background: rgba(255, 255, 255, 0.03);
+      color: #ead8d2;
+      line-height: 1.5;
+    }
+
+    #browserPrompt.visible {
+      display: block;
+    }
+
+    #browserPromptTitle {
+      font-size: 12px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: #f3d7d7;
+      margin-bottom: 8px;
+    }
+
+    #browserPromptText {
+      font-size: 14px;
+      color: #d8c7c1;
+      margin-bottom: 12px;
+    }
+
+    #openBrowserButton {
+      min-width: 190px;
+    }
+
+    .browserActions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    #copyLinkButton,
+    #shareLinkButton {
+      min-width: 148px;
+    }
+
+    body[data-screen="tablet"] {
+      --hud-pad: 16px;
+      --hud-gap: 10px;
+      --side-panel: 250px;
+      --panel-pad-y: 12px;
+      --panel-pad-x: 13px;
+      --panel-font: 12px;
+      --label-font: 10px;
+      --box-size: 126px;
+      --message-width: 620px;
+    }
+
+    body[data-screen="mobile"] {
+      --hud-pad: 10px;
+      --hud-gap: 8px;
+      --side-panel: 1fr;
+      --panel-pad-y: 10px;
+      --panel-pad-x: 11px;
+      --panel-font: 11px;
+      --label-font: 9px;
+      --box-size: 104px;
+      --message-width: 100%;
+    }
+
+    body[data-screen="mobile"] #hud {
+      grid-template-columns: 1fr;
+      grid-template-rows: auto auto auto auto;
+    }
+
+    body[data-screen="mobile"] canvas,
+    body[data-screen="mobile"] #lookPad,
+    body[data-screen="mobile"] #movePad,
+    body[data-screen="mobile"] .touchButton {
+      touch-action: none;
+    }
+
+    body[data-screen="mobile"] #statusPanel,
+    body[data-screen="mobile"] #boxPanel,
+    body[data-screen="mobile"] #intelPanel,
+    body[data-screen="mobile"] #messagePanel {
+      grid-column: 1;
+    }
+
+    body[data-screen="mobile"] #statusPanel {
+      grid-row: 1;
+    }
+
+    body[data-screen="mobile"] #boxPanel {
+      grid-row: 2;
+    }
+
+    body[data-screen="mobile"] #intelPanel {
+      grid-row: 3;
+    }
+
+    body[data-screen="mobile"] #messagePanel {
+      grid-row: 4;
+      width: 100%;
+      font-size: 12px;
+      margin-bottom: 104px;
+    }
+
+    body[data-screen="mobile"] #containedList,
+    body[data-screen="mobile"] #powerList,
+    body[data-screen="mobile"] #effectList,
+    body[data-screen="mobile"] #clueList {
+      max-height: 160px;
+    }
+
+    body[data-screen="mobile"] #capturePrompt {
+      bottom: calc(22% + var(--safe-bottom));
+      width: min(520px, calc(100% - 20px));
+      padding: 12px 14px;
+      font-size: 12px;
+    }
+
+    body[data-screen="mobile"] #touchControls.active {
+      display: block;
+    }
+
+    body[data-screen="mobile"] #mobileButtons {
+      bottom: max(22px, calc(var(--safe-bottom) + 18px));
+    }
+
+    body[data-screen="mobile"] #lookPad {
+      right: max(12px, calc(var(--safe-right) + 8px));
+      width: min(42vw, 210px);
+      height: min(28vh, 220px);
+    }
+
+    body[data-screen="mobile"] #crosshair {
+      width: 22px;
+      height: 22px;
+    }
+
+    body[data-screen="mobile"] #crosshair::before {
+      left: 10px;
+      height: 22px;
+    }
+
+    body[data-screen="mobile"] #crosshair::after {
+      top: 10px;
+      width: 22px;
     }
 
     @media (max-width: 980px) {
@@ -431,6 +777,22 @@
     <div id="flashOverlay"></div>
   </div>
 
+  <div id="touchControls">
+    <div id="movePad" class="touchZone">
+      <div id="moveStick"></div>
+    </div>
+    <div id="lookPad" class="touchZone">
+      <div id="lookPadLabel">Look</div>
+    </div>
+    <div id="mobileButtons">
+      <button id="mobileCapture" class="touchButton primary" type="button">Capture</button>
+      <button id="mobileSprint" class="touchButton" type="button">Sprint</button>
+      <button id="mobileStabilize" class="touchButton" type="button">Stabilize</button>
+      <button id="mobileSlide" class="touchButton" type="button">Slide</button>
+      <button id="mobileShove" class="touchButton" type="button">Shove</button>
+    </div>
+  </div>
+
   <div id="hud">
     <div id="statusPanel" class="panel">
       <div class="label">Status</div>
@@ -452,6 +814,12 @@
       <div class="valueLine"><span>Storage</span><span id="storageValue">localStorage</span></div>
       <div class="valueLine"><span>Escape Risk</span><span id="escapeValue">none</span></div>
       <div class="valueLine"><span>Run Time</span><span id="timeValue">00:00</span></div>
+      <div class="label" style="margin-top: 14px;">Compass</div>
+      <div id="compassWidget">
+        <div id="compassNeedle"></div>
+      </div>
+      <div id="compassLabel" class="muted">No target</div>
+      <button id="viewToggleButton" class="hudButton" type="button">Third Person View</button>
     </div>
 
     <div id="boxPanel" class="panel">
@@ -477,7 +845,7 @@
       <div id="clueList"></div>
     </div>
 
-    <div id="messagePanel" class="panel">Press `Start Run`, click the screen, look with the mouse, and move with `WASD`. Sprint with `Shift`. Capture with `E`. Shove with `Space`.</div>
+    <div id="messagePanel" class="panel">Press `Start Run`, click the screen, look with the mouse, and move with `WASD`. Sprint with `Shift`. Slide with `C`. Capture with `E`. Shove with `Space`.</div>
   </div>
 
   <div id="menu">
@@ -493,7 +861,7 @@
             `E` captures when an entity is in sight and within range. Each capture grants a power, raises the pressure in the maze, and makes the surviving entities feel more aware of what is being done to them.
           </div>
           <div class="menuBox">
-            `F` stabilizes the Red Box but slows you and burns stamina. The box does not heal rogue entities. It only forces them back into temporary stability while it struggles to contain things that no longer follow rules.
+            `F` stabilizes the Red Box but slows you and burns stamina. `C` lets you slide out of a bad line if you have momentum. The box does not heal rogue entities. It only forces them back into temporary stability while it struggles to contain things that no longer follow rules.
           </div>
           <div class="menuBox">
             If the box fails, escapes return worse than before. You are not just hunting entities. You are trying to stop something spreading, something learning, before there is nothing left to contain and nothing left to protect.
@@ -502,7 +870,19 @@
             Firebase is optional. If you define `window.__DISGRACE_FIREBASE_CONFIG` before this script loads, the game attempts anonymous auth and remote save sync. If it fails, the run continues on `localStorage`.
           </div>
         </div>
-      <button id="startButton">Start Run</button>
+        <div class="buttonRow">
+          <button id="startButton">Start Run</button>
+          <button id="fullscreenButton" type="button">Fullscreen</button>
+        </div>
+        <div id="browserPrompt" class="panel">
+          <div id="browserPromptTitle">Browser Recommended</div>
+          <div id="browserPromptText">This page works best in your phone's main browser.</div>
+          <div class="browserActions">
+            <button id="openBrowserButton" type="button">Open In Browser</button>
+            <button id="copyLinkButton" type="button">Copy Link</button>
+            <button id="shareLinkButton" type="button">Share Link</button>
+          </div>
+        </div>
     </div>
   </div>
 
@@ -511,7 +891,7 @@
       "use strict";
 
       const TAU = Math.PI * 2;
-      const FOV = Math.PI / 2.2;
+      const FOV = Math.PI / 1.8;
       const WORLD_SIZE = 19;
       const ENTITY_COUNT = 10;
       const MAX_CAPTURE_RANGE = 2.4;
@@ -772,6 +1152,8 @@
         storageValue: document.getElementById("storageValue"),
         escapeValue: document.getElementById("escapeValue"),
         timeValue: document.getElementById("timeValue"),
+        compassNeedle: document.getElementById("compassNeedle"),
+        compassLabel: document.getElementById("compassLabel"),
         targetName: document.getElementById("targetName"),
         targetHint: document.getElementById("targetHint"),
         containedList: document.getElementById("containedList"),
@@ -780,12 +1162,29 @@
         clueList: document.getElementById("clueList"),
         messagePanel: document.getElementById("messagePanel"),
         capturePrompt: document.getElementById("capturePrompt"),
+        glitchOverlay: document.getElementById("glitchOverlay"),
         boxWidget: document.getElementById("boxWidget"),
         boxStateText: document.getElementById("boxStateText"),
         boxHint: document.getElementById("boxHint"),
         flashOverlay: document.getElementById("flashOverlay"),
+        touchControls: document.getElementById("touchControls"),
+        movePad: document.getElementById("movePad"),
+        moveStick: document.getElementById("moveStick"),
+        lookPad: document.getElementById("lookPad"),
+        mobileCapture: document.getElementById("mobileCapture"),
+        mobileSprint: document.getElementById("mobileSprint"),
+        mobileStabilize: document.getElementById("mobileStabilize"),
+        mobileSlide: document.getElementById("mobileSlide"),
+        mobileShove: document.getElementById("mobileShove"),
         menu: document.getElementById("menu"),
         startButton: document.getElementById("startButton"),
+        fullscreenButton: document.getElementById("fullscreenButton"),
+        viewToggleButton: document.getElementById("viewToggleButton"),
+        browserPrompt: document.getElementById("browserPrompt"),
+        browserPromptText: document.getElementById("browserPromptText"),
+        openBrowserButton: document.getElementById("openBrowserButton"),
+        copyLinkButton: document.getElementById("copyLinkButton"),
+        shareLinkButton: document.getElementById("shareLinkButton"),
       };
 
       const canvas = document.getElementById("game");
@@ -1196,10 +1595,15 @@
             lastCell: { x: 1, y: 1 },
             progressCellTime: 0,
             sprinting: false,
+            sliding: false,
+            slideTimer: 0,
+            slideCooldown: 0,
+            slideDir: 0,
             steadyTime: 0,
             stepCycle: 0,
             shoveCooldown: 0,
             hitCooldown: 0,
+            vespersRescueUsed: false,
           };
 
           this.box = {
@@ -1231,11 +1635,39 @@
           this.heavyZones = [];
           this.ghostTrails = [];
           this.playerTrails = [];
+          this.predictionMarkers = [];
+          this.extraLifePickups = [];
+          this.lastPredictionPulse = -999;
+          this.nextLifeRollAt = 60;
+          this.screenProfile = {
+            name: "desktop",
+            pixelRatio: 1,
+            rayStep: 2,
+          };
+          this.touch = {
+            movePointerId: null,
+            lookPointerId: null,
+            moveX: 0,
+            moveY: 0,
+            moveRadius: 0,
+            lookLastX: 0,
+            lookLastY: 0,
+          };
+          this.activeEntities = [];
+          this.captureCandidate = null;
+          this.lastHudRenderAt = -999;
+          this.viewMode = "first";
+          this.viewState = null;
           this.rays = [];
           this.visibleTarget = null;
           this.threatPressure = 0;
           this.statusEffects = [];
           this.discoveredClues = [];
+          this.browserContext = {
+            isMobile: false,
+            isStandalone: false,
+            isLikelyWebView: false,
+          };
 
           this.resize();
           window.addEventListener("resize", () => this.resize());
@@ -1254,6 +1686,26 @@
           HUD.startButton.addEventListener("click", async () => {
             await this.start();
           });
+          HUD.fullscreenButton.addEventListener("click", async () => {
+            await this.toggleFullscreen();
+          });
+          document.addEventListener("fullscreenchange", () => {
+            HUD.fullscreenButton.textContent = document.fullscreenElement ? "Windowed" : "Fullscreen";
+          });
+          HUD.viewToggleButton.addEventListener("click", () => {
+            this.toggleViewMode();
+          });
+          HUD.openBrowserButton.addEventListener("click", () => {
+            this.tryOpenExternalBrowser();
+          });
+          HUD.copyLinkButton.addEventListener("click", async () => {
+            await this.copyCurrentLink();
+          });
+          HUD.shareLinkButton.addEventListener("click", async () => {
+            await this.shareCurrentLink();
+          });
+          this.updateBrowserPrompt();
+          this.setupTouchControls();
         }
 
         async boot() {
@@ -1265,14 +1717,129 @@
         }
 
         async start() {
+          await this.enterFullscreen();
           HUD.menu.classList.add("hidden");
           await this.audio.start();
           this.resetRun();
           this.running = true;
           this.lockPointer();
+          this.updateTouchUi();
           this.message = "The containment field wakes with you.";
           this.messageTimer = 5;
           requestAnimationFrame((time) => this.frame(time));
+        }
+
+        async enterFullscreen() {
+          if (document.fullscreenElement) return true;
+          try {
+            await document.documentElement.requestFullscreen?.();
+            return !!document.fullscreenElement;
+          } catch (error) {
+            return false;
+          }
+        }
+
+        async exitFullscreen() {
+          if (!document.fullscreenElement) return true;
+          try {
+            await document.exitFullscreen?.();
+            return !document.fullscreenElement;
+          } catch (error) {
+            return false;
+          }
+        }
+
+        async toggleFullscreen() {
+          if (document.fullscreenElement) {
+            await this.exitFullscreen();
+          } else {
+            await this.enterFullscreen();
+          }
+        }
+
+        toggleViewMode() {
+          this.viewMode = this.viewMode === "first" ? "third" : "first";
+          this.pushMessage(this.viewMode === "third" ? "Third-person camera engaged." : "First-person camera engaged.");
+        }
+
+        updateBrowserPrompt() {
+          const ua = navigator.userAgent || "";
+          const isMobile = /Android|iPhone|iPad|iPod/i.test(ua);
+          const isStandalone = !!(window.matchMedia?.("(display-mode: standalone)")?.matches || navigator.standalone);
+          const isIOSWebView = /iPhone|iPad|iPod/i.test(ua) && !/Safari/i.test(ua);
+          const isAndroidWebView = /Android/i.test(ua) && (/\bwv\b/i.test(ua) || /Version\/[\d.]+/i.test(ua));
+          const isSocialInApp = /Instagram|FBAN|FBAV|Line|Snapchat|TikTok|Twitter/i.test(ua);
+          const isLikelyWebView = isMobile && !isStandalone && (isIOSWebView || isAndroidWebView || isSocialInApp);
+
+          this.browserContext = { isMobile, isStandalone, isLikelyWebView };
+
+          if (!isLikelyWebView) {
+            HUD.browserPrompt.classList.remove("visible");
+            return;
+          }
+
+          const instructions = /iPhone|iPad|iPod/i.test(ua)
+            ? "Open the share menu and choose Safari for the best mobile version."
+            : "Use the menu in this app and choose your default browser for the best mobile version.";
+          HUD.browserPromptText.textContent = instructions;
+          HUD.shareLinkButton.style.display = navigator.share ? "" : "none";
+          HUD.browserPrompt.classList.add("visible");
+        }
+
+        tryOpenExternalBrowser() {
+          const url = window.location.href;
+          const win = window.open(url, "_blank", "noopener,noreferrer");
+          if (win) return;
+
+          const fallback = document.createElement("textarea");
+          fallback.value = url;
+          document.body.appendChild(fallback);
+          fallback.select();
+          try {
+            document.execCommand("copy");
+            this.pushMessage("Browser launch was blocked. The link was copied so you can open it in your browser.");
+          } catch (error) {
+            this.pushMessage("Browser launch was blocked. Use your app menu to open this page in your browser.");
+          }
+          fallback.remove();
+        }
+
+        async copyCurrentLink() {
+          const url = window.location.href;
+          try {
+            if (navigator.clipboard?.writeText) {
+              await navigator.clipboard.writeText(url);
+            } else {
+              const fallback = document.createElement("textarea");
+              fallback.value = url;
+              document.body.appendChild(fallback);
+              fallback.select();
+              document.execCommand("copy");
+              fallback.remove();
+            }
+            this.pushMessage("Link copied. Open it in your browser for the full website version.");
+          } catch (error) {
+            this.pushMessage("Could not copy the link automatically. Use your app menu to open this page in your browser.");
+          }
+        }
+
+        async shareCurrentLink() {
+          const url = window.location.href;
+          if (!navigator.share) {
+            await this.copyCurrentLink();
+            return;
+          }
+          try {
+            await navigator.share({
+              title: "Disgrace",
+              text: "Open Disgrace in your browser.",
+              url,
+            });
+          } catch (error) {
+            if (error && error.name !== "AbortError") {
+              await this.copyCurrentLink();
+            }
+          }
         }
 
         resetRun() {
@@ -1314,11 +1881,20 @@
             lastCell: { x: 1, y: 1 },
             progressCellTime: 0,
             sprinting: false,
+            sliding: false,
+            slideTimer: 0,
+            slideCooldown: 0,
+            slideDir: 0,
             steadyTime: 0,
             stepCycle: 0,
             shoveCooldown: 0,
             hitCooldown: 0,
+            vespersRescueUsed: false,
           };
+          this.predictionMarkers = [];
+          this.extraLifePickups = [];
+          this.lastPredictionPulse = -999;
+          this.nextLifeRollAt = 60;
 
           this.entities = ENTITY_LIBRARY.map((template, index) => {
             const spawn = this.pickSpawn(index + 3);
@@ -1334,6 +1910,7 @@
               dir: this.rng() * TAU,
               speedBias: 0.9 + this.rng() * 0.5,
               captured: false,
+              active: false,
               escaped: false,
               visible: true,
               phase: this.rng(),
@@ -1353,6 +1930,9 @@
             };
           });
 
+          this.resetTouchInput();
+          this.syncActiveEntities();
+
           this.renderHud();
         }
 
@@ -1362,7 +1942,173 @@
           return { x: cell.x + 0.5, y: cell.y + 0.5 };
         }
 
+        isMobileProfile() {
+          return this.screenProfile?.name === "mobile";
+        }
+
+        updateTouchUi() {
+          const active = this.isMobileProfile() && this.running && !this.gameOver;
+          HUD.touchControls.classList.toggle("active", active);
+          HUD.mobileSprint.classList.toggle("active", !!this.keys["shift"]);
+          HUD.mobileStabilize.classList.toggle("active", !!this.keys["f"]);
+        }
+
+        resetTouchInput() {
+          this.touch.movePointerId = null;
+          this.touch.lookPointerId = null;
+          this.touch.moveX = 0;
+          this.touch.moveY = 0;
+          this.touch.lookLastX = 0;
+          this.touch.lookLastY = 0;
+          this.keys["shift"] = false;
+          this.keys["f"] = false;
+          HUD.moveStick.style.transform = "translate(-50%, -50%)";
+          this.updateTouchUi();
+        }
+
+        setupTouchControls() {
+          const stop = (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+          };
+          const updateMoveStick = (clientX, clientY) => {
+            const rect = HUD.movePad.getBoundingClientRect();
+            const cx = rect.left + rect.width / 2;
+            const cy = rect.top + rect.height / 2;
+            const dx = clientX - cx;
+            const dy = clientY - cy;
+            const radius = rect.width * 0.34;
+            const dist = Math.hypot(dx, dy);
+            const scale = dist > radius ? radius / dist : 1;
+            const clampedX = dx * scale;
+            const clampedY = dy * scale;
+            this.touch.moveX = clamp(clampedX / radius, -1, 1);
+            this.touch.moveY = clamp(-clampedY / radius, -1, 1);
+            HUD.moveStick.style.transform = "translate(calc(-50% + " + clampedX.toFixed(1) + "px), calc(-50% + " + clampedY.toFixed(1) + "px))";
+          };
+
+          HUD.movePad.addEventListener("pointerdown", (event) => {
+            if (!this.isMobileProfile()) return;
+            stop(event);
+            this.touch.movePointerId = event.pointerId;
+            HUD.movePad.setPointerCapture?.(event.pointerId);
+            updateMoveStick(event.clientX, event.clientY);
+          });
+          HUD.movePad.addEventListener("pointermove", (event) => {
+            if (this.touch.movePointerId !== event.pointerId) return;
+            stop(event);
+            updateMoveStick(event.clientX, event.clientY);
+          });
+          const clearMove = (event) => {
+            if (this.touch.movePointerId !== event.pointerId) return;
+            stop(event);
+            this.touch.movePointerId = null;
+            this.touch.moveX = 0;
+            this.touch.moveY = 0;
+            HUD.moveStick.style.transform = "translate(-50%, -50%)";
+          };
+          HUD.movePad.addEventListener("pointerup", clearMove);
+          HUD.movePad.addEventListener("pointercancel", clearMove);
+
+          HUD.lookPad.addEventListener("pointerdown", (event) => {
+            if (!this.isMobileProfile()) return;
+            stop(event);
+            this.touch.lookPointerId = event.pointerId;
+            this.touch.lookLastX = event.clientX;
+            this.touch.lookLastY = event.clientY;
+            HUD.lookPad.setPointerCapture?.(event.pointerId);
+          });
+          HUD.lookPad.addEventListener("pointermove", (event) => {
+            if (this.touch.lookPointerId !== event.pointerId) return;
+            stop(event);
+            const dx = event.clientX - this.touch.lookLastX;
+            const dy = event.clientY - this.touch.lookLastY;
+            this.touch.lookLastX = event.clientX;
+            this.touch.lookLastY = event.clientY;
+            if (!this.running || this.gameOver) return;
+            this.player.angle = wrapAngle(this.player.angle + dx * 0.012);
+            this.player.pitch = wrapAngle(this.player.pitch - dy * 0.01);
+          });
+          const clearLook = (event) => {
+            if (this.touch.lookPointerId !== event.pointerId) return;
+            stop(event);
+            this.touch.lookPointerId = null;
+          };
+          HUD.lookPad.addEventListener("pointerup", clearLook);
+          HUD.lookPad.addEventListener("pointercancel", clearLook);
+
+          const bindHold = (element, key) => {
+            element.addEventListener("pointerdown", (event) => {
+              if (!this.isMobileProfile()) return;
+              stop(event);
+              this.keys[key] = true;
+              element.classList.add("active");
+              this.updateTouchUi();
+            });
+            const release = (event) => {
+              stop(event);
+              this.keys[key] = false;
+              element.classList.remove("active");
+              this.updateTouchUi();
+            };
+            element.addEventListener("pointerup", release);
+            element.addEventListener("pointercancel", release);
+            element.addEventListener("pointerleave", (event) => {
+              if ((event.buttons || 0) === 0) release(event);
+            });
+          };
+
+          bindHold(HUD.mobileSprint, "shift");
+          bindHold(HUD.mobileStabilize, "f");
+
+          HUD.mobileCapture.addEventListener("pointerdown", (event) => {
+            if (!this.isMobileProfile()) return;
+            stop(event);
+            HUD.mobileCapture.classList.add("active");
+            this.attemptCapture();
+          });
+          HUD.mobileCapture.addEventListener("pointerup", (event) => {
+            stop(event);
+            HUD.mobileCapture.classList.remove("active");
+          });
+          HUD.mobileCapture.addEventListener("pointercancel", (event) => {
+            stop(event);
+            HUD.mobileCapture.classList.remove("active");
+          });
+
+          HUD.mobileShove.addEventListener("pointerdown", (event) => {
+            if (!this.isMobileProfile()) return;
+            stop(event);
+            HUD.mobileShove.classList.add("active");
+            this.attemptShove();
+          });
+          HUD.mobileShove.addEventListener("pointerup", (event) => {
+            stop(event);
+            HUD.mobileShove.classList.remove("active");
+          });
+          HUD.mobileShove.addEventListener("pointercancel", (event) => {
+            stop(event);
+            HUD.mobileShove.classList.remove("active");
+          });
+
+          HUD.mobileSlide.addEventListener("pointerdown", (event) => {
+            if (!this.isMobileProfile()) return;
+            stop(event);
+            HUD.mobileSlide.classList.add("active");
+            this.attemptSlide();
+          });
+          HUD.mobileSlide.addEventListener("pointerup", (event) => {
+            stop(event);
+            HUD.mobileSlide.classList.remove("active");
+          });
+          HUD.mobileSlide.addEventListener("pointercancel", (event) => {
+            stop(event);
+            HUD.mobileSlide.classList.remove("active");
+          });
+        }
+
         lockPointer() {
+          if (this.isMobileProfile()) return;
           if (document.pointerLockElement !== canvas) {
             canvas.requestPointerLock?.();
           }
@@ -1372,6 +2118,9 @@
           this.keys[event.key.toLowerCase()] = down;
           if (down && event.key.toLowerCase() === "e") {
             this.attemptCapture();
+          }
+          if (down && (event.key.toLowerCase() === "c" || event.code === "KeyC")) {
+            this.attemptSlide();
           }
           if (down && (event.code === "Space" || event.key === " ")) {
             event.preventDefault();
@@ -1398,6 +2147,82 @@
 
         findEntity(id) {
           return this.entities.find((entity) => entity.id === id);
+        }
+
+        getViewState() {
+          const state = {
+            x: this.player.x,
+            y: this.player.y,
+            angle: this.player.angle,
+            thirdPerson: this.viewMode === "third",
+            cameraOffset: 0,
+          };
+          if (!state.thirdPerson) return state;
+
+          const desiredDistance = 1.35;
+          for (let dist = desiredDistance; dist >= 0.15; dist -= 0.12) {
+            const candidateX = this.player.x - Math.sin(this.player.angle) * dist;
+            const candidateY = this.player.y - Math.cos(this.player.angle) * dist;
+            if (!this.collides(candidateX, candidateY) && this.hasLineOfSight(candidateX, candidateY, this.player.x, this.player.y)) {
+              state.x = candidateX;
+              state.y = candidateY;
+              state.cameraOffset = dist;
+              break;
+            }
+          }
+          return state;
+        }
+
+        isEntityActive(entity) {
+          return !entity.captured && entity.active;
+        }
+
+        activateEntity(entity, reposition = true) {
+          entity.active = true;
+          if (reposition) {
+            const spot = this.pickSpawn(Math.floor(this.time * 100) + entity.name.length + Math.floor(this.rng() * 17));
+            entity.x = spot.x;
+            entity.y = spot.y;
+          }
+        }
+
+        syncActiveEntities(limit = 2) {
+          const loose = [];
+          const active = [];
+          const dormant = [];
+          for (const entity of this.entities) {
+            if (entity.captured) continue;
+            loose.push(entity);
+            if (entity.active) active.push(entity);
+            else dormant.push(entity);
+          }
+
+          const maxActive = Math.min(limit, loose.length);
+          if (active.length > maxActive) {
+            const keep = new Set(active
+              .slice()
+              .sort(() => this.rng() - 0.5)
+              .slice(0, maxActive)
+              .map((entity) => entity.id));
+            for (const entity of active) {
+              if (!keep.has(entity.id)) entity.active = false;
+            }
+          }
+
+          const refreshedActive = [];
+          for (const entity of loose) {
+            if (entity.active) refreshedActive.push(entity);
+          }
+
+          if (refreshedActive.length < maxActive) {
+            const needed = maxActive - refreshedActive.length;
+            for (const entity of dormant.sort(() => this.rng() - 0.5).slice(0, needed)) {
+              this.activateEntity(entity, true);
+              refreshedActive.push(entity);
+            }
+          }
+
+          this.activeEntities = refreshedActive;
         }
 
         isWall(x, y) {
@@ -1438,16 +2263,26 @@
           if (this.flashTimer > 0) this.flashTimer -= dt;
           this.player.hitCooldown = Math.max(0, this.player.hitCooldown - dt);
           this.player.shoveCooldown = Math.max(0, this.player.shoveCooldown - dt);
+          this.player.slideCooldown = Math.max(0, this.player.slideCooldown - dt);
+          this.player.slideTimer = Math.max(0, this.player.slideTimer - dt);
+          this.player.sliding = this.player.slideTimer > 0;
+          this.syncActiveEntities();
 
           this.updatePlayer(dt);
           this.updateEntities(dt);
           this.updateContainment(dt);
           this.updateEffects(dt);
+          this.updatePickups(dt);
           this.updateClues();
-          this.computeVisibleTarget();
+          this.viewState = this.getViewState();
+          this.computeVisibleTarget(this.viewState);
+          this.captureCandidate = this.findCaptureCandidate(this.viewState);
           this.checkThreats();
-          this.draw(dt);
-          this.renderHud();
+          this.draw(dt, this.viewState);
+          if (this.time - this.lastHudRenderAt > 0.08) {
+            this.renderHud();
+            this.lastHudRenderAt = this.time;
+          }
 
           if (this.entities.every((entity) => entity.captured) && !this.box.broken) {
             this.finishRun("All entities contained. The box still shakes.");
@@ -1472,8 +2307,8 @@
           if (turnLeft) this.player.angle = wrapAngle(this.player.angle - dt * 1.7);
           if (turnRight) this.player.angle = wrapAngle(this.player.angle + dt * 1.7);
 
-          const forward = (this.keys["w"] ? 1 : 0) - (this.keys["s"] ? 1 : 0);
-          const strafe = (this.keys["d"] ? 1 : 0) - (this.keys["a"] ? 1 : 0);
+          const forward = ((this.keys["w"] ? 1 : 0) - (this.keys["s"] ? 1 : 0)) + this.touch.moveY;
+          const strafe = ((this.keys["d"] ? 1 : 0) - (this.keys["a"] ? 1 : 0)) + this.touch.moveX;
           const stabilizing = !!this.keys["f"];
           const sprinting = !!this.keys["shift"] && this.player.stamina > 4 && forward > 0 && !stabilizing;
           this.player.sprinting = sprinting;
@@ -1481,6 +2316,7 @@
           const baseSpeed = sprinting ? 3.2 : 2.1;
           let moveSpeed = baseSpeed;
           if (stabilizing) moveSpeed *= 0.58;
+          if (this.player.sliding) moveSpeed = Math.max(moveSpeed, 4.9 + this.player.slideTimer * 1.1);
 
           let burden = 0;
           for (const zone of this.heavyZones) {
@@ -1504,9 +2340,11 @@
           }
 
           const moveAngle = Math.atan2(strafe, forward || 0.0001);
-          const moveAmount = Math.hypot(forward, strafe);
+          const moveAmount = this.player.sliding ? 1 : Math.hypot(forward, strafe);
           if (moveAmount > 0.05) {
-            const angle = this.player.angle + moveAngle;
+            const angle = this.player.sliding
+              ? this.player.slideDir
+              : this.player.angle + moveAngle;
             const dx = Math.sin(angle) * moveSpeed * dt * Math.min(1, moveAmount);
             const dy = Math.cos(angle) * moveSpeed * dt * Math.min(1, moveAmount);
             const nextX = this.player.x + dx;
@@ -1528,11 +2366,11 @@
 
             this.player.hesitation = 0;
             this.player.steadyTime += dt;
-            this.player.stepCycle += dt * moveSpeed * (stabilizing ? 0.55 : 1);
+            this.player.stepCycle += dt * moveSpeed * (stabilizing ? 0.55 : this.player.sliding ? 0.8 : 1);
             const stepThreshold = sprinting ? 0.72 : 0.5;
             if (this.player.stepCycle >= stepThreshold) {
               this.player.stepCycle = 0;
-              this.audio.stepEvent(clamp(moveSpeed / 3.2, 0.35, 1), sprinting);
+              this.audio.stepEvent(clamp(moveSpeed / 4.9, 0.35, 1), sprinting || this.player.sliding);
             }
           } else {
             this.player.hesitation += dt;
@@ -1540,7 +2378,9 @@
             this.player.stepCycle = 0;
           }
 
-          if (sprinting) {
+          if (this.player.sliding) {
+            this.player.stamina = Math.max(0, this.player.stamina - dt * 8);
+          } else if (sprinting) {
             this.player.stamina = Math.max(0, this.player.stamina - dt * 18);
           } else if (stabilizing) {
             this.player.stamina = Math.max(0, this.player.stamina - dt * 13);
@@ -1572,7 +2412,7 @@
         }
 
         updateEntities(dt) {
-          const freeEntities = this.entities.filter((entity) => !entity.captured);
+          const freeEntities = this.activeEntities;
           const pressure = [];
 
           for (const entity of freeEntities) {
@@ -1814,9 +2654,10 @@
         triggerEscape(count) {
           const captured = this.entities.filter((entity) => entity.captured);
           if (!captured.length) return;
-          const pool = [...captured].sort(() => this.rng() - 0.5).slice(0, count);
+          const pool = [...captured].sort(() => this.rng() - 0.5).slice(0, Math.min(2, count, captured.length));
           for (const entity of pool) {
             entity.captured = false;
+            entity.active = false;
             entity.escaped = true;
             entity.x = this.player.x + Math.sin(this.time + entity.name.length) * 2.2;
             entity.y = this.player.y + Math.cos(this.time + entity.name.length) * 2.2;
@@ -1828,18 +2669,21 @@
             this.pushMessage(entity.name + " slips out of the Red Box.");
             this.audio.pulseEvent(170, 0.28, 0.07, "square");
           }
+          this.syncActiveEntities();
         }
 
         releaseAll() {
           for (const entity of this.entities) {
             if (entity.captured) {
               entity.captured = false;
+              entity.active = false;
               entity.escaped = true;
               const spot = this.pickSpawn(Math.floor(this.time * 100) + entity.name.length);
               entity.x = spot.x;
               entity.y = spot.y;
             }
           }
+          this.syncActiveEntities();
         }
 
         updateEffects(dt) {
@@ -1847,20 +2691,26 @@
           this.heavyZones = this.heavyZones.filter((zone) => (zone.ttl -= dt) > 0);
           this.ghostTrails = this.ghostTrails.filter((trail) => (trail.ttl -= dt) > 0);
           this.playerTrails = this.playerTrails.filter((trail) => (trail.ttl -= dt) > 0);
+          this.predictionMarkers = this.predictionMarkers.filter((marker) => (marker.ttl -= dt) > 0);
           this.statusEffects = [];
 
+          if (this.hasPower("relic") && this.time - this.lastPredictionPulse > 5) {
+            this.lastPredictionPulse = this.time;
+            this.refreshPredictionMarkers();
+          }
+
           const velour = this.findEntity("velour");
-          if (velour && !velour.captured && distance(this.player, velour) < velour.silenceRadius && !this.hasPower("velour")) {
+          if (velour && this.isEntityActive(velour) && distance(this.player, velour) < velour.silenceRadius && !this.hasPower("velour")) {
             this.player.fear += dt * 4;
             this.statusEffects.push("Velour silence field");
           }
           const lament = this.findEntity("lament");
-          if (lament && !lament.captured && distance(this.player, lament) < 4) {
+          if (lament && this.isEntityActive(lament) && distance(this.player, lament) < 4) {
             this.player.fear += dt * 3;
             this.statusEffects.push("Lament burden field");
           }
           const nocturne = this.findEntity("nocturne");
-          if (nocturne && !nocturne.captured && distance(this.player, nocturne) < 5) {
+          if (nocturne && this.isEntityActive(nocturne) && distance(this.player, nocturne) < 5) {
             this.statusEffects.push("Nocturne dimming nearby lights");
           }
           if (this.box.overload) {
@@ -1875,11 +2725,20 @@
           if (this.player.shoveCooldown > 0) {
             this.statusEffects.push("Shove recharging");
           }
+          if (this.player.sliding) {
+            this.statusEffects.push("Sliding burst");
+          }
+          if (this.player.slideCooldown > 0) {
+            this.statusEffects.push("Slide recharging");
+          }
+          if (this.extraLifePickups.length) {
+            this.statusEffects.push("Life echo detected in the maze");
+          }
 
           this.player.fear = clamp(this.player.fear, 0, 100);
         }
 
-        computeVisibleTarget() {
+        computeVisibleTarget(viewState = this.viewState || this.getViewState()) {
           const width = canvas.width;
           const height = canvas.height;
           const horizon = this.getHorizon(height);
@@ -1887,10 +2746,10 @@
           const crosshairY = height / 2;
           const visible = [];
           for (const entity of this.entities) {
-            if (entity.captured) continue;
-            const projection = this.projectEntity(entity, width, height, horizon);
+            if (!this.isEntityActive(entity)) continue;
+            const projection = this.projectEntity(entity, width, height, horizon, viewState);
             const hitbox = this.getEntityScreenHitbox(entity, projection);
-            const los = this.hasLineOfSight(this.player.x, this.player.y, entity.x, entity.y);
+            const los = this.hasLineOfSight(viewState.x, viewState.y, entity.x, entity.y);
             if (!los || projection.dist > 6) continue;
             if (Math.abs(projection.angle) > FOV / 2 + 0.22) continue;
 
@@ -1916,7 +2775,7 @@
                 Math.abs(((hitbox.top + hitbox.bottom) / 2) - crosshairY) * 0.35;
               visible.push({
                 entity,
-                dist: projection.dist,
+                dist: distance(this.player, entity),
                 angle: projection.angle,
                 crosshairError,
               });
@@ -1927,7 +2786,7 @@
           this.visibleTarget = visible[0] || null;
         }
 
-        findCaptureCandidate() {
+        findCaptureCandidate(viewState = this.viewState || this.getViewState()) {
           if (this.visibleTarget && this.visibleTarget.dist <= MAX_CAPTURE_RANGE + this.getEntityCollisionRadius(this.visibleTarget.entity) * 0.95) {
             return this.visibleTarget;
           }
@@ -1940,12 +2799,12 @@
           const candidates = [];
 
           for (const entity of this.entities) {
-            if (entity.captured) continue;
-            const projection = this.projectEntity(entity, width, height, horizon);
+            if (!this.isEntityActive(entity)) continue;
+            const projection = this.projectEntity(entity, width, height, horizon, viewState);
             const hitbox = this.getEntityScreenHitbox(entity, projection);
             const captureReach = MAX_CAPTURE_RANGE + hitbox.radius * 0.95;
-            if (projection.dist > captureReach + 0.1) continue;
-            if (!this.hasLineOfSight(this.player.x, this.player.y, entity.x, entity.y)) continue;
+            if (distance(this.player, entity) > captureReach + 0.1) continue;
+            if (!this.hasLineOfSight(viewState.x, viewState.y, entity.x, entity.y)) continue;
 
             let allowed = true;
             if (entity.id === "silhouette") {
@@ -1969,7 +2828,7 @@
 
             candidates.push({
               entity,
-              dist: projection.dist,
+              dist: distance(this.player, entity),
               angle: projection.angle,
               crosshairError: horizontalError + verticalError * 0.28,
             });
@@ -2021,6 +2880,7 @@
           }
 
           target.captured = true;
+          target.active = false;
           target.escaped = false;
           this.stats.captures += 1;
           this.box.stability -= 8 + this.stats.captures * 1.45;
@@ -2038,6 +2898,7 @@
             powersUnlocked: Array.from(new Set([...(this.save.powersUnlocked || []), target.id])),
             seenEntities: Array.from(new Set([...(this.save.seenEntities || []), target.id])),
           });
+          this.syncActiveEntities();
         }
 
         attemptShove() {
@@ -2052,7 +2913,7 @@
           }
 
           const nearby = this.entities
-            .filter((entity) => !entity.captured)
+            .filter((entity) => this.isEntityActive(entity))
             .map((entity) => ({
               entity,
               dist: distance(this.player, entity),
@@ -2073,6 +2934,30 @@
           this.flashTimer = Math.max(this.flashTimer, 0.12);
           this.pushMessage("You force the field outward and drive " + target.name + " back.");
           this.audio.pulseEvent(260, 0.18, 0.08, "sawtooth");
+        }
+
+        attemptSlide() {
+          if (!this.running || this.gameOver) return;
+          if (this.player.slideCooldown > 0 || this.player.sliding) return;
+          if (!this.player.sprinting || this.keys["f"]) {
+            this.pushMessage("You need sprint momentum before you can slide.");
+            return;
+          }
+          if (this.player.stamina < 12) {
+            this.pushMessage("You are too drained to drop into a slide.");
+            return;
+          }
+
+          const forward = (this.keys["w"] ? 1 : 0) - (this.keys["s"] ? 1 : 0);
+          const strafe = (this.keys["d"] ? 1 : 0) - (this.keys["a"] ? 1 : 0);
+          const moveAngle = Math.atan2(strafe, forward || 0.0001);
+          this.player.slideDir = this.player.angle + moveAngle;
+          this.player.slideTimer = 0.8;
+          this.player.slideCooldown = 2.4;
+          this.player.sliding = true;
+          this.player.stamina = Math.max(0, this.player.stamina - 14);
+          this.flashTimer = Math.max(this.flashTimer, 0.08);
+          this.pushMessage("You drop low and slide through the corridor.");
         }
 
         knockbackEntity(entity, amount) {
@@ -2105,8 +2990,7 @@
         }
 
         checkThreats() {
-          for (const entity of this.entities) {
-            if (entity.captured) continue;
+          for (const entity of this.activeEntities) {
             const dist = distance(this.player, entity);
             if (dist < PLAYER_RADIUS + this.getEntityCollisionRadius(entity)) {
               this.takeHit(entity);
@@ -2117,6 +3001,23 @@
 
         takeHit(entity) {
           if (this.player.hitCooldown > 0) return;
+
+          if (this.player.lives <= 1 && this.hasPower("vespers") && !this.player.vespersRescueUsed) {
+            this.player.vespersRescueUsed = true;
+            this.player.hitCooldown = 1.8;
+            this.player.fear = clamp(this.player.fear + 18, 0, 100);
+            this.box.stability = clamp(this.box.stability - 4, 0, 100);
+            this.teleportPlayerAway(entity);
+            this.knockbackEntity(entity, 1.2);
+            this.flashTimer = Math.max(this.flashTimer, 0.42);
+            HUD.flashOverlay.style.opacity = "0.7";
+            setTimeout(() => {
+              HUD.flashOverlay.style.opacity = "0";
+            }, 160);
+            this.audio.pulseEvent(320, 0.34, 0.12, "triangle");
+            this.pushMessage("Vespers bends the field. You are pulled far from the killing blow.");
+            return;
+          }
 
           this.player.lives -= 1;
           this.player.hitCooldown = 1.8;
@@ -2138,6 +3039,112 @@
           this.pushMessage(entity.name + " tears through the field. " + this.player.lives + " lives remain.");
         }
 
+        teleportPlayerAway(entity) {
+          const origin = { x: this.player.x, y: this.player.y };
+          const candidates = this.floorCells
+            .map((cell) => {
+              const spot = { x: cell.x + 0.5, y: cell.y + 0.5 };
+              return {
+                x: spot.x,
+                y: spot.y,
+                score:
+                  Math.hypot(spot.x - entity.x, spot.y - entity.y) * 1.6 +
+                  Math.hypot(spot.x - origin.x, spot.y - origin.y),
+              };
+            })
+            .filter((spot) => spot.score > 16)
+            .sort((a, b) => b.score - a.score);
+          const target = candidates[Math.floor(this.rng() * Math.min(8, candidates.length))] || candidates[0];
+          if (!target) return;
+          this.player.x = target.x;
+          this.player.y = target.y;
+          this.player.lastCell = { x: Math.floor(target.x), y: Math.floor(target.y) };
+          this.player.progressCellTime = 0;
+          this.player.slideTimer = 0;
+          this.player.sliding = false;
+        }
+
+        updatePickups(dt) {
+          while (this.time >= this.nextLifeRollAt) {
+            this.nextLifeRollAt += 60;
+            if (this.rng() < 0.05) {
+              this.spawnExtraLife();
+            }
+          }
+
+          this.extraLifePickups = this.extraLifePickups.filter((pickup) => {
+            pickup.ttl -= dt;
+            if (distance(this.player, pickup) < 0.55) {
+              this.player.lives += 1;
+              this.pushMessage("A life echo stabilizes around you. +1 life.");
+              this.audio.pulseEvent(540, 0.22, 0.09, "sine");
+              return false;
+            }
+            return pickup.ttl > 0;
+          });
+        }
+
+        spawnExtraLife() {
+          const candidates = this.floorCells
+            .map((cell) => ({ x: cell.x + 0.5, y: cell.y + 0.5 }))
+            .filter((cell) => distance(this.player, cell) > 4.5);
+          if (!candidates.length) return;
+          const pick = candidates[Math.floor(this.rng() * candidates.length)];
+          this.extraLifePickups.push({ x: pick.x, y: pick.y, ttl: 55 });
+          this.pushMessage("A fragile life echo forms somewhere in the maze.");
+        }
+
+        refreshPredictionMarkers() {
+          const freeEntities = this.activeEntities;
+          if (!freeEntities.length) return;
+          const shuffled = [...freeEntities].sort(() => this.rng() - 0.5);
+          const sampleSize = Math.max(1, Math.floor(freeEntities.length / 6));
+          this.predictionMarkers = [];
+
+          for (const entity of shuffled.slice(0, sampleSize)) {
+            const forecast = this.predictEntityDestination(entity);
+            if (!forecast) continue;
+            this.predictionMarkers.push({
+              x: forecast.x,
+              y: forecast.y,
+              ttl: 5,
+              entityId: entity.id,
+            });
+          }
+        }
+
+        predictEntityDestination(entity) {
+          if (entity.id === "relic") {
+            const nextNode = entity.nodes[(entity.nodeIndex + 1) % entity.nodes.length];
+            return { x: nextNode.x, y: nextNode.y };
+          }
+          if (entity.id === "vespers" && entity.pauseTimer > 0) {
+            const target = this.pickSpawn(Math.floor((this.time + 5) * 10) + entity.name.length);
+            return { x: target.x, y: target.y };
+          }
+
+          let x = entity.x;
+          let y = entity.y;
+          const speed = entity.id === "silhouette"
+            ? 1.6
+            : entity.id === "nocturne"
+              ? 1.4
+              : entity.id === "lament"
+                ? 0.95
+                : 1.15;
+          const step = 0.15;
+          for (let time = 0; time < 5; time += step) {
+            const nx = x + Math.sin(entity.dir) * speed * step;
+            const ny = y + Math.cos(entity.dir) * speed * step;
+            if (this.isWall(nx, y) || this.isWall(x, ny)) {
+              break;
+            }
+            x = nx;
+            y = ny;
+          }
+          return { x, y };
+        }
+
         lightAt(x, y) {
           let value = this.hasPower("nocturne") ? 0.42 : 0.28;
           for (const node of this.lightNodes) {
@@ -2152,22 +3159,22 @@
           return clamp(value, 0.04, 1);
         }
 
-        castRay(angle) {
+        castRay(angle, viewState = this.viewState || this.getViewState()) {
           let depth = 0;
           const sin = Math.sin(angle);
           const cos = Math.cos(angle);
           while (depth < 20) {
             depth += 0.02;
-            const x = this.player.x + sin * depth;
-            const y = this.player.y + cos * depth;
+            const x = viewState.x + sin * depth;
+            const y = viewState.y + cos * depth;
             if (this.isWall(x, y)) {
               return { dist: depth, hitX: x, hitY: y };
             }
           }
           return {
             dist: 20,
-            hitX: this.player.x + sin * 20,
-            hitY: this.player.y + cos * 20,
+            hitX: viewState.x + sin * 20,
+            hitY: viewState.y + cos * 20,
           };
         }
 
@@ -2189,11 +3196,11 @@
           return height * (0.5 + Math.sin(this.time * 3.2) * this.threatPressure * 0.01) + Math.sin(this.player.pitch) * height * LOOK_PITCH_SCALE;
         }
 
-        projectEntity(entity, width, height, horizon) {
-          const dx = entity.x - this.player.x;
-          const dy = entity.y - this.player.y;
+        projectEntity(entity, width, height, horizon, viewState = this.viewState || this.getViewState()) {
+          const dx = entity.x - viewState.x;
+          const dy = entity.y - viewState.y;
           const dist = Math.hypot(dx, dy);
-          const angle = wrapAngle(Math.atan2(dx, dy) - this.player.angle);
+          const angle = wrapAngle(Math.atan2(dx, dy) - viewState.angle);
           const scale = entity.id === "relic" ? 0.75 : 1;
           const screenX = width / 2 + (angle / (FOV / 2)) * (width / 2);
           const spriteWidth = clamp((height / Math.max(dist, 0.4)) * 0.24 * scale, 10, 260);
@@ -2443,7 +3450,7 @@
           ctx.restore();
         }
 
-        draw(dt) {
+        draw(dt, viewState = this.viewState || this.getViewState()) {
           const width = canvas.width;
           const height = canvas.height;
           const horizon = this.getHorizon(height);
@@ -2464,12 +3471,13 @@
 
           this.drawAmbientDepth(width, height, horizon);
 
-          const rayCount = Math.floor(width / 2);
+          const rayStep = this.screenProfile?.rayStep || 2;
+          const rayCount = Math.max(120, Math.floor(width / rayStep));
           this.rays = [];
           for (let i = 0; i < rayCount; i += 1) {
             const cameraX = (i / rayCount) - 0.5;
-            const angle = this.player.angle + cameraX * FOV;
-            const hit = this.castRay(angle);
+            const angle = viewState.angle + cameraX * FOV;
+            const hit = this.castRay(angle, viewState);
             let dist = hit.dist * Math.cos(cameraX * FOV);
             this.rays.push(dist);
 
@@ -2480,21 +3488,21 @@
             this.drawWallSlice(i * 2, y, 3, sliceHeight, shade, hit, angle, width, height);
           }
 
-          this.drawWorldEffects(width, height, horizon);
-          this.drawEntities(width, height, horizon);
-          this.drawPost(width, height);
+          this.drawWorldEffects(width, height, horizon, viewState);
+          this.drawEntities(width, height, horizon, viewState);
+          this.drawPost(width, height, viewState);
         }
 
-        drawWorldEffects(width, height, horizon) {
+        drawWorldEffects(width, height, horizon, viewState = this.viewState || this.getViewState()) {
           if (this.hasPower("silhouette")) {
             ctx.strokeStyle = "rgba(120, 160, 255, 0.28)";
             ctx.lineWidth = 2;
             for (const mark of this.hiddenMarks) {
-              const dx = mark.x + 0.5 - this.player.x;
-              const dy = mark.y + 0.5 - this.player.y;
+              const dx = mark.x + 0.5 - viewState.x;
+              const dy = mark.y + 0.5 - viewState.y;
               const dist = Math.hypot(dx, dy);
               if (dist > 7) continue;
-              const angle = wrapAngle(Math.atan2(dx, dy) - this.player.angle);
+              const angle = wrapAngle(Math.atan2(dx, dy) - viewState.angle);
               if (Math.abs(angle) > FOV / 2) continue;
               const sx = width / 2 + (angle / (FOV / 2)) * (width / 2);
               const sy = horizon + height / Math.max(dist, 1) * 0.32;
@@ -2506,11 +3514,11 @@
           }
 
           for (const zone of this.heavyZones) {
-            const dx = zone.x - this.player.x;
-            const dy = zone.y - this.player.y;
+            const dx = zone.x - viewState.x;
+            const dy = zone.y - viewState.y;
             const dist = Math.hypot(dx, dy);
             if (dist > 7) continue;
-            const angle = wrapAngle(Math.atan2(dx, dy) - this.player.angle);
+            const angle = wrapAngle(Math.atan2(dx, dy) - viewState.angle);
             if (Math.abs(angle) > FOV / 2) continue;
             const size = clamp(260 / dist, 10, 180);
             const sx = width / 2 + (angle / (FOV / 2)) * (width / 2);
@@ -2522,11 +3530,11 @@
           }
 
           for (const hazard of this.hazards) {
-            const dx = hazard.x - this.player.x;
-            const dy = hazard.y - this.player.y;
+            const dx = hazard.x - viewState.x;
+            const dy = hazard.y - viewState.y;
             const dist = Math.hypot(dx, dy);
             if (dist > 7) continue;
-            const angle = wrapAngle(Math.atan2(dx, dy) - this.player.angle);
+            const angle = wrapAngle(Math.atan2(dx, dy) - viewState.angle);
             if (Math.abs(angle) > FOV / 2) continue;
             const size = clamp(200 / dist, 8, 110);
             const sx = width / 2 + (angle / (FOV / 2)) * (width / 2);
@@ -2539,16 +3547,51 @@
             ctx.closePath();
             ctx.fill();
           }
+
+          for (const marker of this.predictionMarkers) {
+            const dx = marker.x - viewState.x;
+            const dy = marker.y - viewState.y;
+            const dist = Math.hypot(dx, dy);
+            if (dist > 12) continue;
+            const angle = wrapAngle(Math.atan2(dx, dy) - viewState.angle);
+            if (Math.abs(angle) > FOV / 2) continue;
+            const sx = width / 2 + (angle / (FOV / 2)) * (width / 2);
+            const sy = horizon + height / Math.max(dist, 1) * 0.38;
+            const pulse = 0.45 + Math.sin(this.time * 5 + dist) * 0.2;
+            ctx.strokeStyle = "rgba(255, 190, 235, " + pulse.toFixed(3) + ")";
+            ctx.lineWidth = 2;
+            ctx.strokeRect(sx - 10, sy - 10, 20, 20);
+          }
+
+          for (const pickup of this.extraLifePickups) {
+            const dx = pickup.x - viewState.x;
+            const dy = pickup.y - viewState.y;
+            const dist = Math.hypot(dx, dy);
+            if (dist > 12) continue;
+            const angle = wrapAngle(Math.atan2(dx, dy) - viewState.angle);
+            if (Math.abs(angle) > FOV / 2) continue;
+            const sx = width / 2 + (angle / (FOV / 2)) * (width / 2);
+            const sy = horizon + height / Math.max(dist, 1) * 0.36;
+            const pulse = 0.7 + Math.sin(this.time * 6 + dist) * 0.18;
+            ctx.strokeStyle = "rgba(160, 255, 190, " + pulse.toFixed(3) + ")";
+            ctx.lineWidth = 2.4;
+            ctx.beginPath();
+            ctx.moveTo(sx - 7, sy);
+            ctx.lineTo(sx + 7, sy);
+            ctx.moveTo(sx, sy - 7);
+            ctx.lineTo(sx, sy + 7);
+            ctx.stroke();
+          }
         }
 
-        drawEntities(width, height, horizon) {
+        drawEntities(width, height, horizon, viewState = this.viewState || this.getViewState()) {
           const sprites = [];
 
           for (const trail of this.ghostTrails) {
-            const dx = trail.x - this.player.x;
-            const dy = trail.y - this.player.y;
+            const dx = trail.x - viewState.x;
+            const dy = trail.y - viewState.y;
             const dist = Math.hypot(dx, dy);
-            const angle = wrapAngle(Math.atan2(dx, dy) - this.player.angle);
+            const angle = wrapAngle(Math.atan2(dx, dy) - viewState.angle);
             if (Math.abs(angle) > FOV / 2 || dist < 0.3) continue;
             sprites.push({
               x: trail.x,
@@ -2562,10 +3605,10 @@
 
           for (const trail of this.playerTrails) {
             if (!this.hasPower("eulogy")) continue;
-            const dx = trail.x - this.player.x;
-            const dy = trail.y - this.player.y;
+            const dx = trail.x - viewState.x;
+            const dy = trail.y - viewState.y;
             const dist = Math.hypot(dx, dy);
-            const angle = wrapAngle(Math.atan2(dx, dy) - this.player.angle);
+            const angle = wrapAngle(Math.atan2(dx, dy) - viewState.angle);
             if (Math.abs(angle) > FOV / 2 || dist < 0.3) continue;
             sprites.push({
               x: trail.x,
@@ -2578,13 +3621,13 @@
           }
 
           for (const entity of this.entities) {
-            if (entity.captured) continue;
+            if (!this.isEntityActive(entity)) continue;
             if (entity.id === "crescent" && !entity.visible) continue;
 
-            const dx = entity.x - this.player.x;
-            const dy = entity.y - this.player.y;
+            const dx = entity.x - viewState.x;
+            const dy = entity.y - viewState.y;
             const dist = Math.hypot(dx, dy);
-            const angle = wrapAngle(Math.atan2(dx, dy) - this.player.angle);
+            const angle = wrapAngle(Math.atan2(dx, dy) - viewState.angle);
             const closeVisibilityBoost = dist < 1.2 ? 0.55 : 0.2;
             if (Math.abs(angle) > FOV / 2 + closeVisibilityBoost) continue;
 
@@ -2630,10 +3673,10 @@
 
               if (sprite.entity.id === "relic" && this.hasPower("relic")) {
                 const nextNode = sprite.entity.nodes[sprite.entity.nodeIndex];
-                const nx = nextNode.x - this.player.x;
-                const ny = nextNode.y - this.player.y;
+                const nx = nextNode.x - viewState.x;
+                const ny = nextNode.y - viewState.y;
                 const nd = Math.hypot(nx, ny);
-                const na = wrapAngle(Math.atan2(nx, ny) - this.player.angle);
+                const na = wrapAngle(Math.atan2(nx, ny) - viewState.angle);
                 if (Math.abs(na) < FOV / 2 && nd < 10) {
                   const sx = width / 2 + (na / (FOV / 2)) * (width / 2);
                   ctx.strokeStyle = "rgba(255, 192, 255, 0.48)";
@@ -2645,9 +3688,33 @@
               }
             }
           }
+
+          if (viewState.thirdPerson && viewState.cameraOffset > 0.1) {
+            this.drawPlayerAvatar(width, height);
+          }
         }
 
-        drawPost(width, height) {
+        drawPlayerAvatar(width, height) {
+          const sway = Math.sin(this.time * (this.player.sprinting ? 10 : 6)) * (this.player.sprinting ? 4 : 2);
+          const baseX = width / 2;
+          const baseY = height * 0.82 + sway;
+          ctx.save();
+          ctx.translate(baseX, baseY);
+          ctx.fillStyle = "rgba(8, 8, 12, 0.9)";
+          ctx.beginPath();
+          ctx.ellipse(0, 8, 22, 32, 0, 0, TAU);
+          ctx.fill();
+          ctx.beginPath();
+          ctx.arc(0, -24, 12, 0, TAU);
+          ctx.fill();
+          ctx.fillStyle = "rgba(255, 120, 120, 0.12)";
+          ctx.beginPath();
+          ctx.ellipse(0, 0, 28, 40, 0, 0, TAU);
+          ctx.fill();
+          ctx.restore();
+        }
+
+        drawPost(width, height, viewState = this.viewState || this.getViewState()) {
           const stress = this.threatPressure + this.player.fear / 120 + (100 - this.box.stability) / 150;
           const jitter = (stress * (this.box.overload ? 6 : 2) + this.box.shake) * Math.sin(this.time * 23);
           HUD.boxWidget.style.transform = "translate(" + jitter + "px," + (-jitter * 0.5) + "px) rotate(" + jitter * 0.28 + "deg)";
@@ -2655,11 +3722,10 @@
           canvas.style.filter =
             "contrast(" + (1.02 + stress * 0.06 + (this.box.stability < 50 ? 0.03 : 0)).toFixed(2) + ") " +
             "saturate(" + (0.86 + stress * 0.18).toFixed(2) + ") " +
-            "blur(" + (stress * (this.findEntity("lament") && !this.findEntity("lament").captured ? 0.55 : 0.18)).toFixed(2) + "px)" +
+            "blur(" + (stress * (this.findEntity("lament") && this.isEntityActive(this.findEntity("lament")) ? 0.55 : 0.18)).toFixed(2) + "px)" +
             " hue-rotate(" + ((this.box.overload ? Math.sin(this.time * 8) * 8 : 0)).toFixed(2) + "deg)";
 
-          const glitch = document.getElementById("glitchOverlay");
-          glitch.style.opacity = String(0.05 + stress * 0.18 + (this.box.overload ? 0.1 : 0));
+          HUD.glitchOverlay.style.opacity = String(0.05 + stress * 0.18 + (this.box.overload ? 0.1 : 0));
 
           ctx.save();
           const chroma = clamp(stress * 4, 0, 12);
@@ -2708,6 +3774,7 @@
           HUD.shoveValue.textContent = this.player.shoveCooldown > 0 ? this.player.shoveCooldown.toFixed(1) + "s" : "ready";
           HUD.timeValue.textContent = formatTime(this.time);
           HUD.storageValue.textContent = StorageBridge.mode;
+          HUD.viewToggleButton.textContent = this.viewMode === "third" ? "First Person View" : "Third Person View";
           HUD.escapeValue.textContent = this.box.broken
             ? "collapse"
             : this.box.overload
@@ -2738,7 +3805,7 @@
             HUD.boxStateText.textContent = this.box.stateText;
           }
 
-          const captureCandidate = this.findCaptureCandidate();
+          const captureCandidate = this.captureCandidate;
           if (captureCandidate && captureCandidate.dist <= MAX_CAPTURE_RANGE + this.getEntityCollisionRadius(captureCandidate.entity) * 0.95) {
             const entity = captureCandidate.entity;
             HUD.capturePrompt.textContent = "Press E to bind " + entity.name + " into the Red Box";
@@ -2747,15 +3814,20 @@
             HUD.capturePrompt.classList.remove("visible");
           }
 
-          const freeEntities = this.entities.filter((entity) => !entity.captured);
+          const freeEntities = this.activeEntities.slice();
           freeEntities.sort((a, b) => distance(this.player, a) - distance(this.player, b));
           const nearest = freeEntities[0];
           if (nearest) {
+            const bearing = wrapAngle(Math.atan2(nearest.x - this.player.x, nearest.y - this.player.y) - this.player.angle);
+            HUD.compassNeedle.style.transform = "translate(-50%, -82%) rotate(" + (bearing * 180 / Math.PI).toFixed(2) + "deg)";
+            HUD.compassLabel.textContent = nearest.name + "  " + distance(this.player, nearest).toFixed(1) + "m";
             HUD.targetName.textContent = nearest.name;
             HUD.targetHint.textContent = this.hasEncounteredEntity(nearest.id)
               ? nearest.detail + " " + nearest.lore
               : nearest.detail;
           } else {
+            HUD.compassNeedle.style.transform = "translate(-50%, -82%) rotate(0deg)";
+            HUD.compassLabel.textContent = "No target";
             HUD.targetName.textContent = "Contained";
             HUD.targetHint.textContent = "Nothing remains outside the Red Box.";
           }
@@ -2820,19 +3892,25 @@
           }
 
           HUD.messagePanel.textContent = this.messageTimer > 0 ? this.message : (
-            this.gameOver ? this.endedBy + " Press Start Run to descend again." : "Mouse look. WASD move. Shift sprint. E capture. Space shove. F stabilize. Recover clues as the run worsens."
+            this.gameOver
+              ? this.endedBy + " Press Start Run to descend again."
+              : this.isMobileProfile()
+                ? "Left pad moves. Right pad looks. Use the action buttons to sprint, stabilize, slide, shove, and capture."
+                : "Mouse look. WASD move. Shift sprint. C slide. E capture. Space shove. F stabilize. Use the View button to swap camera modes."
           );
         }
 
         pushMessage(text) {
           this.message = text;
           this.messageTimer = 4.6;
+          this.lastHudRenderAt = -999;
         }
 
         finishRun(text) {
           this.running = false;
           this.gameOver = true;
           this.endedBy = text;
+          this.resetTouchInput();
           this.persistRun(true);
           HUD.menu.classList.remove("hidden");
         }
@@ -2841,6 +3919,7 @@
           this.running = false;
           this.gameOver = true;
           this.endedBy = text;
+          this.resetTouchInput();
           this.persistRun(false);
           HUD.menu.classList.remove("hidden");
         }
@@ -2870,12 +3949,38 @@
         }
 
         resize() {
-          const scale = Math.min(window.devicePixelRatio || 1, 2);
+          const width = window.innerWidth;
+          const height = window.innerHeight;
+          const shortest = Math.min(width, height);
+          const isMobile = width <= 680 || shortest <= 430;
+          const isTablet = !isMobile && width <= 1100;
+
+          this.screenProfile = isMobile
+            ? {
+                name: "mobile",
+                pixelRatio: Math.min(window.devicePixelRatio || 1, 1.25),
+                rayStep: 3.8,
+              }
+            : isTablet
+              ? {
+                  name: "tablet",
+                  pixelRatio: Math.min(window.devicePixelRatio || 1, 1.5),
+                  rayStep: 2.8,
+                }
+              : {
+                  name: "desktop",
+                  pixelRatio: Math.min(window.devicePixelRatio || 1, 2),
+                  rayStep: 2,
+                };
+
+          document.body.dataset.screen = this.screenProfile.name;
+          const scale = this.screenProfile.pixelRatio;
           canvas.width = Math.floor(window.innerWidth * scale);
           canvas.height = Math.floor(window.innerHeight * scale);
           canvas.style.width = window.innerWidth + "px";
           canvas.style.height = window.innerHeight + "px";
           ctx.setTransform(scale, 0, 0, scale, 0, 0);
+          this.updateTouchUi();
         }
 
         drawSplash() {
