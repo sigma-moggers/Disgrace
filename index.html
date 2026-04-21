@@ -801,7 +801,7 @@
         <div class="bar"><div id="stabilityBar" class="barFill"></div></div>
       </div>
       <div class="valueRow">
-        <div class="valueLine"><span>Stamina</span><span id="staminaValue">100%</span></div>
+        <div class="valueLine"><span>Stamina</span><span id="staminaValue">130 / 130</span></div>
         <div class="bar"><div id="staminaBar" class="barFill stamina"></div></div>
       </div>
       <div class="valueRow">
@@ -894,10 +894,20 @@
       const FOV = Math.PI / 1.8;
       const WORLD_SIZE = 19;
       const ENTITY_COUNT = 10;
-      const MAX_CAPTURE_RANGE = 2.4;
+      const MAX_CAPTURE_RANGE = 3.2;
       const PLAYER_RADIUS = 0.2;
       const SAVE_KEY = "disgrace-save-v1";
       const LOOK_PITCH_SCALE = 0.34;
+      const PLAYER_MAX_STAMINA = 130;
+      const SLIDE_DURATION = 0.9;
+      const SLIDE_CAMERA_DROP = 0.14;
+      const SLIDE_ENTRY_SPEED = 5.6;
+      const SLIDE_EXIT_SPEED = 3.35;
+      const SLIDE_ENTITY_CLEARANCE = 0.52;
+      const FORWARD_DRIFT_COUNTERSTRAFE = 0.165;
+      const RELIC_HOLD_DURATION = 30;
+      const OVERLOAD_RECOVERY_TIME = 40;
+      const OVERLOAD_RECOVERY_COOLDOWN = 12;
 
       const ENTITY_LIBRARY = [
         {
@@ -977,7 +987,7 @@
           name: "Relic",
           color: "#e0a0e0",
           power: "Predict positions",
-          detail: "Teleports between fixed nodes. Learn the route and intercept the pattern instead of pretending raw speed can beat rehearsal.",
+          detail: "Teleports between prepared anchors every 30 seconds. Read the next jump and intercept the pattern before it rehearses a safer route.",
           lore: "Relic suggests the worst possibility: a remainder can keep a pattern, improve it, and act like it knows exactly why the pattern works.",
         },
       ];
@@ -1588,7 +1598,7 @@
             y: 1.5,
             angle: 0,
             pitch: 0,
-            stamina: 100,
+            stamina: PLAYER_MAX_STAMINA,
             lives: 3,
             fear: 0,
             hesitation: 0,
@@ -1599,6 +1609,8 @@
             slideTimer: 0,
             slideCooldown: 0,
             slideDir: 0,
+            slideVisual: 0,
+            forwardLockAngle: null,
             steadyTime: 0,
             stepCycle: 0,
             shoveCooldown: 0,
@@ -1612,6 +1624,8 @@
             overload: false,
             broken: false,
             breakTimer: 0,
+            overloadTimer: 0,
+            overloadCooldown: 0,
             lastEscapeAt: 0,
             shake: 0,
           };
@@ -1861,6 +1875,8 @@
             overload: false,
             broken: false,
             breakTimer: 0,
+            overloadTimer: 0,
+            overloadCooldown: 0,
             lastEscapeAt: -999,
             shake: 0,
           };
@@ -1874,7 +1890,7 @@
             y: 1.5,
             angle: 0,
             pitch: 0,
-            stamina: 100,
+            stamina: PLAYER_MAX_STAMINA,
             lives: 3,
             fear: 0,
             hesitation: 0,
@@ -1885,6 +1901,8 @@
             slideTimer: 0,
             slideCooldown: 0,
             slideDir: 0,
+            slideVisual: 0,
+            forwardLockAngle: null,
             steadyTime: 0,
             stepCycle: 0,
             shoveCooldown: 0,
@@ -1898,8 +1916,7 @@
 
           this.entities = ENTITY_LIBRARY.map((template, index) => {
             const spawn = this.pickSpawn(index + 3);
-            const nodes = [spawn, this.pickSpawn(index + 19), this.pickSpawn(index + 41), this.pickSpawn(index + 71)];
-            return {
+            const entity = {
               id: template.id,
               name: template.name,
               color: template.color,
@@ -1918,8 +1935,10 @@
               lastHazardAt: 0,
               lastZoneAt: 0,
               silenceRadius: 3.6,
-              nodes,
+              nodes: [spawn, this.pickSpawn(index + 19), this.pickSpawn(index + 41), this.pickSpawn(index + 71)],
               nodeIndex: 0,
+              nextNodeIndex: 0,
+              relicHoldTimer: RELIC_HOLD_DURATION,
               pauseTimer: 0,
               patienceWindow: 0,
               recentLook: 0,
@@ -1928,6 +1947,8 @@
               seenDirectly: 0,
               lastSeenAt: 0,
             };
+            if (entity.id === "relic") this.resetRelicPattern(entity, true);
+            return entity;
           });
 
           this.resetTouchInput();
@@ -2149,6 +2170,61 @@
           return this.entities.find((entity) => entity.id === id);
         }
 
+        buildRelicNodes() {
+          const cells = this.floorCells
+            .filter((cell) => Math.hypot(cell.x - 1, cell.y - 1) > 5)
+            .slice()
+            .sort(() => this.rng() - 0.5);
+          const nodes = [];
+          for (const cell of cells) {
+            const spot = { x: cell.x + 0.5, y: cell.y + 0.5 };
+            if (nodes.every((node) => Math.hypot(node.x - spot.x, node.y - spot.y) > 2.4)) {
+              nodes.push(spot);
+            }
+            if (nodes.length >= 4) break;
+          }
+          if (!nodes.length) nodes.push(this.pickSpawn(Math.floor(this.time * 100) + 19));
+          while (nodes.length < 4) {
+            nodes.push({ ...nodes[0] });
+          }
+          return nodes;
+        }
+
+        pickRelicNodeIndex(entity, excludeIndex = entity.nodeIndex) {
+          const options = entity.nodes
+            .map((_, index) => index)
+            .filter((index) => index !== excludeIndex);
+          if (!options.length) return excludeIndex;
+          return options[Math.floor(this.rng() * options.length)];
+        }
+
+        resetRelicPattern(entity, rebuildNodes = false) {
+          if (entity.id !== "relic") return;
+          if (rebuildNodes || !entity.nodes || entity.nodes.length < 2) {
+            entity.nodes = this.buildRelicNodes();
+          }
+          entity.nodeIndex = Math.floor(this.rng() * entity.nodes.length);
+          entity.nextNodeIndex = this.pickRelicNodeIndex(entity, entity.nodeIndex);
+          entity.relicHoldTimer = RELIC_HOLD_DURATION;
+          const current = entity.nodes[entity.nodeIndex];
+          const next = entity.nodes[entity.nextNodeIndex];
+          entity.x = current.x;
+          entity.y = current.y;
+          entity.dir = wrapAngle(Math.atan2(next.x - current.x, next.y - current.y));
+        }
+
+        teleportRelic(entity) {
+          if (entity.id !== "relic") return;
+          entity.nodeIndex = entity.nextNodeIndex;
+          const current = entity.nodes[entity.nodeIndex];
+          entity.x = current.x;
+          entity.y = current.y;
+          entity.nextNodeIndex = this.pickRelicNodeIndex(entity, entity.nodeIndex);
+          entity.relicHoldTimer = RELIC_HOLD_DURATION;
+          const next = entity.nodes[entity.nextNodeIndex];
+          entity.dir = wrapAngle(Math.atan2(next.x - current.x, next.y - current.y));
+        }
+
         getViewState() {
           const state = {
             x: this.player.x,
@@ -2179,6 +2255,10 @@
 
         activateEntity(entity, reposition = true) {
           entity.active = true;
+          if (entity.id === "relic") {
+            this.resetRelicPattern(entity, reposition);
+            return;
+          }
           if (reposition) {
             const spot = this.pickSpawn(Math.floor(this.time * 100) + entity.name.length + Math.floor(this.rng() * 17));
             entity.x = spot.x;
@@ -2239,6 +2319,34 @@
             { x: x + PLAYER_RADIUS, y: y + PLAYER_RADIUS },
           ];
           return points.some((point) => this.isWall(point.x, point.y));
+        }
+
+        movePlayer(dx, dy, preventSideSlip = false) {
+          if (preventSideSlip) {
+            for (const factor of [1, 0.72, 0.45, 0.22]) {
+              const nx = this.player.x + dx * factor;
+              const ny = this.player.y + dy * factor;
+              if (!this.collides(nx, ny)) {
+                this.player.x = nx;
+                this.player.y = ny;
+                return true;
+              }
+            }
+            return false;
+          }
+
+          let moved = false;
+          const nx = this.player.x + dx;
+          const ny = this.player.y + dy;
+          if (!this.collides(nx, this.player.y)) {
+            this.player.x = nx;
+            moved = true;
+          }
+          if (!this.collides(this.player.x, ny)) {
+            this.player.y = ny;
+            moved = true;
+          }
+          return moved;
         }
 
         frame(timestamp) {
@@ -2307,16 +2415,40 @@
           if (turnLeft) this.player.angle = wrapAngle(this.player.angle - dt * 1.7);
           if (turnRight) this.player.angle = wrapAngle(this.player.angle + dt * 1.7);
 
-          const forward = ((this.keys["w"] ? 1 : 0) - (this.keys["s"] ? 1 : 0)) + this.touch.moveY;
-          const strafe = ((this.keys["d"] ? 1 : 0) - (this.keys["a"] ? 1 : 0)) + this.touch.moveX;
+          const touchForward = this.isMobileProfile() ? this.touch.moveY : 0;
+          const touchStrafe = this.isMobileProfile() ? this.touch.moveX : 0;
+          let forward = ((this.keys["w"] ? 1 : 0) - (this.keys["s"] ? 1 : 0)) + touchForward;
+          let strafe = ((this.keys["d"] ? 1 : 0) - (this.keys["a"] ? 1 : 0)) + touchStrafe;
+          if (Math.abs(forward) < 0.035) forward = 0;
+          if (Math.abs(strafe) < 0.035) strafe = 0;
+          const forwardLockActive =
+            !this.isMobileProfile() &&
+            !this.player.sliding &&
+            Math.abs(strafe) < 0.001 &&
+            Math.abs(forward) > 0.08;
+          if (forwardLockActive && forward > 0) {
+            strafe -= FORWARD_DRIFT_COUNTERSTRAFE;
+          }
+          if (forwardLockActive) {
+            if (this.player.forwardLockAngle === null) {
+              this.player.forwardLockAngle = this.player.angle;
+            }
+          } else {
+            this.player.forwardLockAngle = null;
+          }
           const stabilizing = !!this.keys["f"];
-          const sprinting = !!this.keys["shift"] && this.player.stamina > 4 && forward > 0 && !stabilizing;
+          const sprinting = !!this.keys["shift"] && this.player.stamina > 5 && forward > 0 && !stabilizing;
           this.player.sprinting = sprinting;
+          this.player.slideVisual = lerp(this.player.slideVisual, this.player.sliding ? 1 : 0, clamp(dt * 10, 0, 1));
 
           const baseSpeed = sprinting ? 3.2 : 2.1;
           let moveSpeed = baseSpeed;
           if (stabilizing) moveSpeed *= 0.58;
-          if (this.player.sliding) moveSpeed = Math.max(moveSpeed, 4.9 + this.player.slideTimer * 1.1);
+          if (this.player.sliding) {
+            const slidePhase = clamp(this.player.slideTimer / SLIDE_DURATION, 0, 1);
+            const slideSpeed = lerp(SLIDE_EXIT_SPEED, SLIDE_ENTRY_SPEED, Math.pow(slidePhase, 0.72));
+            moveSpeed = Math.max(moveSpeed, slideSpeed);
+          }
 
           let burden = 0;
           for (const zone of this.heavyZones) {
@@ -2339,26 +2471,29 @@
             }
           }
 
-          const moveAngle = Math.atan2(strafe, forward || 0.0001);
           const moveAmount = this.player.sliding ? 1 : Math.hypot(forward, strafe);
           if (moveAmount > 0.05) {
-            const angle = this.player.sliding
-              ? this.player.slideDir
-              : this.player.angle + moveAngle;
-            const dx = Math.sin(angle) * moveSpeed * dt * Math.min(1, moveAmount);
-            const dy = Math.cos(angle) * moveSpeed * dt * Math.min(1, moveAmount);
-            const nextX = this.player.x + dx;
-            const nextY = this.player.y + dy;
+            let dx = 0;
+            let dy = 0;
 
-            let moved = false;
-            if (!this.collides(nextX, this.player.y)) {
-              this.player.x = nextX;
-              moved = true;
+            if (this.player.sliding) {
+              dx = Math.sin(this.player.slideDir) * moveSpeed * dt;
+              dy = Math.cos(this.player.slideDir) * moveSpeed * dt;
+            } else {
+              if (moveAmount > 1) {
+                forward /= moveAmount;
+                strafe /= moveAmount;
+              }
+              const moveAngle = this.player.forwardLockAngle === null ? this.player.angle : this.player.forwardLockAngle;
+              const forwardX = Math.sin(moveAngle);
+              const forwardY = Math.cos(moveAngle);
+              const strafeX = Math.cos(moveAngle);
+              const strafeY = -Math.sin(moveAngle);
+              dx = (forwardX * forward + strafeX * strafe) * moveSpeed * dt;
+              dy = (forwardY * forward + strafeY * strafe) * moveSpeed * dt;
             }
-            if (!this.collides(this.player.x, nextY)) {
-              this.player.y = nextY;
-              moved = true;
-            }
+            const straightIntent = !this.player.sliding && Math.abs(strafe) < 0.001 && Math.abs(forward) > 0.08;
+            const moved = this.movePlayer(dx, dy, straightIntent);
 
             if (!moved) {
               this.noteMistake(0.12, "The maze rejects the route.");
@@ -2366,11 +2501,15 @@
 
             this.player.hesitation = 0;
             this.player.steadyTime += dt;
-            this.player.stepCycle += dt * moveSpeed * (stabilizing ? 0.55 : this.player.sliding ? 0.8 : 1);
-            const stepThreshold = sprinting ? 0.72 : 0.5;
-            if (this.player.stepCycle >= stepThreshold) {
+            if (this.player.sliding) {
               this.player.stepCycle = 0;
-              this.audio.stepEvent(clamp(moveSpeed / 4.9, 0.35, 1), sprinting || this.player.sliding);
+            } else {
+              this.player.stepCycle += dt * moveSpeed * (stabilizing ? 0.55 : 1);
+              const stepThreshold = sprinting ? 0.72 : 0.5;
+              if (this.player.stepCycle >= stepThreshold) {
+                this.player.stepCycle = 0;
+                this.audio.stepEvent(clamp(moveSpeed / 4.9, 0.35, 1), sprinting);
+              }
             }
           } else {
             this.player.hesitation += dt;
@@ -2379,15 +2518,15 @@
           }
 
           if (this.player.sliding) {
-            this.player.stamina = Math.max(0, this.player.stamina - dt * 8);
+            this.player.stamina = Math.max(0, this.player.stamina - dt * 5);
           } else if (sprinting) {
-            this.player.stamina = Math.max(0, this.player.stamina - dt * 18);
+            this.player.stamina = Math.max(0, this.player.stamina - dt * 16);
           } else if (stabilizing) {
-            this.player.stamina = Math.max(0, this.player.stamina - dt * 13);
+            this.player.stamina = Math.max(0, this.player.stamina - dt * 12);
           } else {
-            let regen = 10;
+            let regen = 12;
             if (burden > 0) regen *= clamp(1 - burden * 0.5, 0.35, 1);
-            this.player.stamina = Math.min(100, this.player.stamina + dt * regen);
+            this.player.stamina = Math.min(PLAYER_MAX_STAMINA, this.player.stamina + dt * regen);
           }
 
           const currentCell = { x: Math.floor(this.player.x), y: Math.floor(this.player.y) };
@@ -2456,7 +2595,7 @@
               case "penance": {
                 const forgiveness = this.hasPower("penance") ? 3 : 0;
                 const mistakeLoad = Math.max(0, this.stats.mistakes - forgiveness);
-                const speed = (1.1 + mistakeLoad * 0.12) * (1 + this.stats.captures * 0.02);
+                const speed = clamp((0.92 + mistakeLoad * 0.085) * (1 + this.stats.captures * 0.015), 0.92, 1.72);
                 entity.dir = wrapAngle(lerp(entity.dir, dirToPlayer, dt * 3));
                 this.moveEntity(entity, speed * dt);
                 pressure.push(clamp(1 - dist / 9, 0, 1) * clamp(0.4 + mistakeLoad * 0.08, 0.4, 1.4));
@@ -2565,16 +2704,12 @@
                 break;
               }
               case "relic": {
-                const node = entity.nodes[entity.nodeIndex];
-                const nodeVector = { x: node.x - entity.x, y: node.y - entity.y };
-                const nodeDist = Math.hypot(nodeVector.x, nodeVector.y);
-                if (nodeDist < 0.4 || this.rng() < dt * 0.05) {
-                  entity.nodeIndex = (entity.nodeIndex + 1) % entity.nodes.length;
-                  const next = entity.nodes[entity.nodeIndex];
-                  entity.x = next.x;
-                  entity.y = next.y;
+                entity.relicHoldTimer -= dt;
+                if (entity.relicHoldTimer <= 0) {
+                  this.teleportRelic(entity);
                 } else {
-                  entity.dir = wrapAngle(Math.atan2(nodeVector.x, nodeVector.y));
+                  const next = entity.nodes[entity.nextNodeIndex];
+                  entity.dir = wrapAngle(Math.atan2(next.x - entity.x, next.y - entity.y));
                 }
                 pressure.push(clamp(1 - dist / 8, 0, 1) * 0.72);
                 break;
@@ -2606,23 +2741,41 @@
           const contained = this.entities.filter((entity) => entity.captured).length;
           const baseDrain = 0.15 + contained * 0.16 + this.threatPressure * 0.7;
           const stabilizing = !!this.keys["f"] && this.player.stamina > 0;
+          const wasOverload = this.box.overload;
           this.box.stability -= baseDrain * dt;
+          this.box.overloadCooldown = Math.max(0, this.box.overloadCooldown - dt);
           if (stabilizing) {
             this.box.stability += (contained > 0 ? 8.5 : 4.5) * dt;
           }
 
-          if (contained >= 7 || this.box.stability < 16) {
+          if (!this.box.broken && this.box.overloadCooldown <= 0 && (contained >= 7 || this.box.stability < 16)) {
             this.box.overload = true;
+          }
+
+          if (this.box.overload && !wasOverload) {
+            this.box.overloadTimer = 0;
           }
 
           if (this.box.overload) {
             this.box.stability -= dt * 0.4;
             this.box.breakTimer += dt;
+            this.box.overloadTimer += dt;
             if (this.time - this.box.lastEscapeAt > 7.2) {
               this.box.lastEscapeAt = this.time;
               this.triggerEscape(this.box.stability < 10 ? 2 : 1);
             }
+            if (!this.box.broken && this.box.overloadTimer >= OVERLOAD_RECOVERY_TIME) {
+              this.box.overload = false;
+              this.box.overloadTimer = 0;
+              this.box.overloadCooldown = OVERLOAD_RECOVERY_COOLDOWN;
+              this.box.breakTimer = 0;
+              this.box.stability = Math.max(this.box.stability, 34);
+              this.box.lastEscapeAt = this.time;
+              this.pushMessage("The Red Box grinds back into a stable state.");
+            }
           } else if (this.box.stability < 20 && this.time - this.box.lastEscapeAt > 11) {
+            this.box.overloadTimer = 0;
+            this.box.breakTimer = 0;
             this.box.lastEscapeAt = this.time;
             this.triggerEscape(1);
           }
@@ -2787,7 +2940,7 @@
         }
 
         findCaptureCandidate(viewState = this.viewState || this.getViewState()) {
-          if (this.visibleTarget && this.visibleTarget.dist <= MAX_CAPTURE_RANGE + this.getEntityCollisionRadius(this.visibleTarget.entity) * 0.95) {
+          if (this.visibleTarget && this.visibleTarget.dist <= MAX_CAPTURE_RANGE + this.getEntityCollisionRadius(this.visibleTarget.entity) * 1.3) {
             return this.visibleTarget;
           }
 
@@ -2802,28 +2955,28 @@
             if (!this.isEntityActive(entity)) continue;
             const projection = this.projectEntity(entity, width, height, horizon, viewState);
             const hitbox = this.getEntityScreenHitbox(entity, projection);
-            const captureReach = MAX_CAPTURE_RANGE + hitbox.radius * 0.95;
-            if (distance(this.player, entity) > captureReach + 0.1) continue;
+            const captureReach = MAX_CAPTURE_RANGE + hitbox.radius * 1.55;
+            if (distance(this.player, entity) > captureReach + 0.2) continue;
             if (!this.hasLineOfSight(viewState.x, viewState.y, entity.x, entity.y)) continue;
 
             let allowed = true;
             if (entity.id === "silhouette") {
               allowed = Math.abs(projection.angle) > 0.08 && Math.abs(projection.angle) < 0.72;
             } else if (entity.id === "velour") {
-              allowed = Math.abs(projection.angle) < 0.22;
+              allowed = Math.abs(projection.angle) < 0.26;
             } else if (entity.id === "crescent") {
               allowed = entity.visible;
             } else {
-              allowed = Math.abs(projection.angle) < 0.32;
+              allowed = Math.abs(projection.angle) < 0.42;
             }
             if (!allowed) continue;
 
             const horizontalError = Math.abs(projection.screenX - crosshairX);
             const verticalError = Math.abs(((hitbox.top + hitbox.bottom) / 2) - crosshairY);
             const withinWindow =
-              horizontalError <= hitbox.halfWidth + 30 &&
-              crosshairY >= hitbox.top - 24 &&
-              crosshairY <= hitbox.bottom + 24;
+              horizontalError <= hitbox.halfWidth + 78 &&
+              crosshairY >= hitbox.top - 54 &&
+              crosshairY <= hitbox.bottom + 52;
             if (!withinWindow) continue;
 
             candidates.push({
@@ -2834,15 +2987,46 @@
             });
           }
 
+          if (!candidates.length) {
+            for (const entity of this.entities) {
+              if (!this.isEntityActive(entity)) continue;
+              if (!this.hasLineOfSight(viewState.x, viewState.y, entity.x, entity.y)) continue;
+
+              const dist = distance(this.player, entity);
+              const captureReach = MAX_CAPTURE_RANGE + this.getEntityCollisionRadius(entity) * 1.6;
+              if (dist > captureReach + 0.28) continue;
+
+              const angle = Math.abs(wrapAngle(Math.atan2(entity.x - viewState.x, entity.y - viewState.y) - viewState.angle));
+              let allowed = true;
+              if (entity.id === "silhouette") {
+                allowed = angle > 0.08 && angle < 0.78;
+              } else if (entity.id === "velour") {
+                allowed = angle < 0.36;
+              } else if (entity.id === "crescent") {
+                allowed = entity.visible;
+              } else {
+                allowed = angle < 0.28;
+              }
+              if (!allowed) continue;
+
+              candidates.push({
+                entity,
+                dist,
+                angle,
+                crosshairError: angle * 260 + dist * 16,
+              });
+            }
+          }
+
           candidates.sort((a, b) => a.crosshairError - b.crosshairError || a.dist - b.dist);
           return candidates[0] || null;
         }
 
         attemptCapture() {
           if (!this.running || this.gameOver) return;
-          const candidate = this.findCaptureCandidate();
+          const candidate = this.captureCandidate || this.findCaptureCandidate();
           const target = candidate && candidate.entity;
-          const captureReach = target ? MAX_CAPTURE_RANGE + this.getEntityCollisionRadius(target) * 0.95 : MAX_CAPTURE_RANGE;
+          const captureReach = target ? MAX_CAPTURE_RANGE + this.getEntityCollisionRadius(target) * 1.3 : MAX_CAPTURE_RANGE;
           if (!target || candidate.dist > captureReach) {
             this.stats.missedCaptures += 1;
             this.noteMistake(0.24, "The box closes on nothing.");
@@ -2869,7 +3053,7 @@
           }
           if (target.id === "relic" && !this.hasPower("relic")) {
             const node = target.nodes[target.nodeIndex];
-            if (Math.hypot(target.x - node.x, target.y - node.y) > 0.55) {
+            if (Math.hypot(target.x - node.x, target.y - node.y) > 0.25) {
               this.noteMistake(0.18, "Relic slips the route. Intercept a node instead of lunging.");
               return;
             }
@@ -2907,7 +3091,7 @@
             this.pushMessage("The field buckles. Wait before shoving again.");
             return;
           }
-          if (this.player.stamina < 14) {
+          if (this.player.stamina < 12) {
             this.pushMessage("You are too drained to force the field outward.");
             return;
           }
@@ -2928,7 +3112,7 @@
             return;
           }
 
-          this.player.stamina = Math.max(0, this.player.stamina - 16);
+          this.player.stamina = Math.max(0, this.player.stamina - 14);
           this.player.shoveCooldown = 2.2;
           this.knockbackEntity(target, 1.4);
           this.flashTimer = Math.max(this.flashTimer, 0.12);
@@ -2943,19 +3127,28 @@
             this.pushMessage("You need sprint momentum before you can slide.");
             return;
           }
-          if (this.player.stamina < 12) {
+          if (this.player.stamina < 10) {
             this.pushMessage("You are too drained to drop into a slide.");
             return;
           }
 
-          const forward = (this.keys["w"] ? 1 : 0) - (this.keys["s"] ? 1 : 0);
-          const strafe = (this.keys["d"] ? 1 : 0) - (this.keys["a"] ? 1 : 0);
-          const moveAngle = Math.atan2(strafe, forward || 0.0001);
-          this.player.slideDir = this.player.angle + moveAngle;
-          this.player.slideTimer = 0.8;
+          const forward = ((this.keys["w"] ? 1 : 0) - (this.keys["s"] ? 1 : 0)) + this.touch.moveY;
+          const strafe = ((this.keys["d"] ? 1 : 0) - (this.keys["a"] ? 1 : 0)) + this.touch.moveX;
+          if (Math.hypot(forward, strafe) > 0.05) {
+            const forwardX = Math.sin(this.player.angle);
+            const forwardY = Math.cos(this.player.angle);
+            const strafeX = Math.cos(this.player.angle);
+            const strafeY = -Math.sin(this.player.angle);
+            const slideVectorX = forwardX * forward + strafeX * strafe;
+            const slideVectorY = forwardY * forward + strafeY * strafe;
+            this.player.slideDir = Math.atan2(slideVectorX, slideVectorY);
+          } else {
+            this.player.slideDir = this.player.angle;
+          }
+          this.player.slideTimer = SLIDE_DURATION;
           this.player.slideCooldown = 2.4;
           this.player.sliding = true;
-          this.player.stamina = Math.max(0, this.player.stamina - 14);
+          this.player.stamina = Math.max(0, this.player.stamina - 12);
           this.flashTimer = Math.max(this.flashTimer, 0.08);
           this.pushMessage("You drop low and slide through the corridor.");
         }
@@ -2992,6 +3185,13 @@
         checkThreats() {
           for (const entity of this.activeEntities) {
             const dist = distance(this.player, entity);
+            if (this.player.sliding) {
+              const approachAngle = Math.abs(wrapAngle(Math.atan2(entity.x - this.player.x, entity.y - this.player.y) - this.player.slideDir));
+              const slideClearance = PLAYER_RADIUS * 0.22 + this.getEntityCollisionRadius(entity) * SLIDE_ENTITY_CLEARANCE;
+              if (approachAngle < 0.95 && dist < slideClearance) {
+                continue;
+              }
+            }
             if (dist < PLAYER_RADIUS + this.getEntityCollisionRadius(entity)) {
               this.takeHit(entity);
               return;
@@ -3115,7 +3315,7 @@
 
         predictEntityDestination(entity) {
           if (entity.id === "relic") {
-            const nextNode = entity.nodes[(entity.nodeIndex + 1) % entity.nodes.length];
+            const nextNode = entity.nodes[entity.nextNodeIndex];
             return { x: nextNode.x, y: nextNode.y };
           }
           if (entity.id === "vespers" && entity.pauseTimer > 0) {
@@ -3193,7 +3393,9 @@
         }
 
         getHorizon(height) {
-          return height * (0.5 + Math.sin(this.time * 3.2) * this.threatPressure * 0.01) + Math.sin(this.player.pitch) * height * LOOK_PITCH_SCALE;
+          const slideDrop = this.player.slideVisual * height * SLIDE_CAMERA_DROP;
+          const threatSway = Math.sin(this.time * 3.2) * this.threatPressure * 0.01 * (1 - this.player.slideVisual * 0.75);
+          return height * (0.5 + threatSway) + Math.sin(this.player.pitch) * height * LOOK_PITCH_SCALE - slideDrop;
         }
 
         projectEntity(entity, width, height, horizon, viewState = this.viewState || this.getViewState()) {
@@ -3373,15 +3575,57 @@
           ctx.fill();
 
           if (entity.id === "obsidian") {
-            ctx.fillStyle = "rgba(255, 185, 120, 0.42)";
-            for (let i = -2; i <= 2; i += 1) {
+            const fracture = 0.45 + pulse * 0.3;
+            ctx.fillStyle = "rgba(255, 190, 130, 0.28)";
+            ctx.beginPath();
+            ctx.moveTo(-spriteWidth * 0.22, spriteHeight * 0.1);
+            ctx.lineTo(-spriteWidth * 0.1, -spriteHeight * 0.04);
+            ctx.lineTo(spriteWidth * 0.02, spriteHeight * 0.12);
+            ctx.lineTo(spriteWidth * 0.16, -spriteHeight * 0.02);
+            ctx.lineTo(spriteWidth * 0.24, spriteHeight * 0.16);
+            ctx.lineTo(spriteWidth * 0.06, spriteHeight * 0.28);
+            ctx.lineTo(-spriteWidth * 0.12, spriteHeight * 0.24);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.strokeStyle = "rgba(255, 214, 170, " + (0.2 + fracture * 0.18).toFixed(3) + ")";
+            ctx.lineWidth = Math.max(1.4, spriteWidth * 0.024);
+            ctx.beginPath();
+            ctx.moveTo(0, spriteHeight * 0.08);
+            ctx.lineTo(-spriteWidth * 0.12, spriteHeight * 0.28);
+            ctx.lineTo(spriteWidth * 0.04, spriteHeight * 0.5);
+            ctx.lineTo(-spriteWidth * 0.08, spriteHeight * 0.76);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(spriteWidth * 0.08, spriteHeight * 0.16);
+            ctx.lineTo(spriteWidth * 0.18, spriteHeight * 0.38);
+            ctx.lineTo(spriteWidth * 0.04, spriteHeight * 0.62);
+            ctx.lineTo(spriteWidth * 0.18, spriteHeight * 0.88);
+            ctx.stroke();
+
+            ctx.fillStyle = "rgba(25, 24, 28, 0.9)";
+            for (const shard of [
+              { x: -0.28, y: 0.38, w: 0.16, h: 0.34, lean: -0.06 },
+              { x: -0.08, y: 0.54, w: 0.18, h: 0.44, lean: 0.04 },
+              { x: 0.14, y: 0.42, w: 0.17, h: 0.38, lean: 0.08 },
+            ]) {
               ctx.beginPath();
-              ctx.moveTo(i * spriteWidth * 0.14, spriteHeight * 0.55);
-              ctx.lineTo(i * spriteWidth * 0.2 + spriteWidth * 0.08, spriteHeight * 0.82);
-              ctx.lineTo(i * spriteWidth * 0.08 - spriteWidth * 0.06, spriteHeight * 0.8);
+              ctx.moveTo(shard.x * spriteWidth, shard.y * spriteHeight);
+              ctx.lineTo((shard.x + shard.w * 0.38) * spriteWidth, (shard.y - 0.16) * spriteHeight);
+              ctx.lineTo((shard.x + shard.w + shard.lean) * spriteWidth, (shard.y + shard.h) * spriteHeight);
+              ctx.lineTo((shard.x - shard.w * 0.16) * spriteWidth, (shard.y + shard.h * 0.82) * spriteHeight);
               ctx.closePath();
               ctx.fill();
             }
+
+            ctx.fillStyle = "rgba(255, 196, 126, " + (0.16 + fracture * 0.2).toFixed(3) + ")";
+            ctx.beginPath();
+            ctx.moveTo(-spriteWidth * 0.18, spriteHeight * 0.5);
+            ctx.lineTo(-spriteWidth * 0.04, spriteHeight * 0.36);
+            ctx.lineTo(spriteWidth * 0.06, spriteHeight * 0.58);
+            ctx.lineTo(-spriteWidth * 0.02, spriteHeight * 0.8);
+            ctx.closePath();
+            ctx.fill();
           }
 
           if (entity.id === "eulogy") {
@@ -3672,7 +3916,7 @@
               }
 
               if (sprite.entity.id === "relic" && this.hasPower("relic")) {
-                const nextNode = sprite.entity.nodes[sprite.entity.nodeIndex];
+                const nextNode = sprite.entity.nodes[sprite.entity.nextNodeIndex];
                 const nx = nextNode.x - viewState.x;
                 const ny = nextNode.y - viewState.y;
                 const nd = Math.hypot(nx, ny);
@@ -3764,10 +4008,10 @@
         renderHud() {
           const contained = this.entities.filter((entity) => entity.captured).length;
           HUD.stabilityBar.style.width = this.box.stability.toFixed(1) + "%";
-          HUD.staminaBar.style.width = this.player.stamina.toFixed(1) + "%";
+          HUD.staminaBar.style.width = ((this.player.stamina / PLAYER_MAX_STAMINA) * 100).toFixed(1) + "%";
           HUD.threatBar.style.width = (this.threatPressure * 100).toFixed(1) + "%";
           HUD.stabilityValue.textContent = Math.round(this.box.stability) + "%";
-          HUD.staminaValue.textContent = Math.round(this.player.stamina) + "%";
+          HUD.staminaValue.textContent = Math.round(this.player.stamina) + " / " + PLAYER_MAX_STAMINA;
           HUD.threatValue.textContent = Math.round(this.threatPressure * 100) + "%";
           HUD.countValue.textContent = contained + " / " + ENTITY_COUNT;
           HUD.livesValue.textContent = String(this.player.lives);
