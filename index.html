@@ -464,6 +464,124 @@
       opacity: 0.08;
     }
 
+    #devCheatButton {
+      position: absolute;
+      top: calc(10px + var(--safe-top));
+      left: calc(10px + var(--safe-left));
+      z-index: 12;
+      pointer-events: auto;
+      appearance: none;
+      border: 1px solid rgba(210, 210, 210, 0.34);
+      background: rgba(116, 116, 120, 0.78);
+      color: #f2f2f4;
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      font: 600 12px/1 Georgia, "Times New Roman", serif;
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.28);
+      display: none;
+    }
+
+    #devCheatButton.visible {
+      display: block;
+    }
+
+    #devCheatPanel,
+    #devCodeModal,
+    #devFailFlash {
+      position: absolute;
+      inset: 0;
+      z-index: 13;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+    }
+
+    #devCheatPanel.visible,
+    #devCodeModal.visible,
+    #devFailFlash.visible {
+      display: flex;
+    }
+
+    #devCheatPanel::before,
+    #devCodeModal::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: rgba(3, 3, 6, 0.56);
+      pointer-events: auto;
+    }
+
+    #devCodeCard,
+    #devCheatCard {
+      position: relative;
+      width: min(440px, calc(100% - 28px));
+      padding: 20px 22px;
+      background: rgba(14, 14, 18, 0.94);
+      border: 1px solid rgba(210, 210, 216, 0.24);
+      box-shadow: 0 28px 80px rgba(0, 0, 0, 0.5);
+      pointer-events: auto;
+      z-index: 1;
+    }
+
+    #devCodeCard h3,
+    #devCheatCard h3 {
+      margin: 0 0 8px;
+      font-size: 22px;
+      font-weight: 600;
+    }
+
+    #devCodeCard p,
+    #devCheatCard p {
+      margin: 0 0 14px;
+      color: #c8c0bd;
+      line-height: 1.45;
+    }
+
+    #devCodeInput {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      background: rgba(255, 255, 255, 0.05);
+      color: #f4efec;
+      font: inherit;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+
+    .devRow {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .devAction {
+      appearance: none;
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      background: rgba(255, 255, 255, 0.06);
+      color: #f0ece9;
+      padding: 10px 12px;
+      min-width: 120px;
+      font: inherit;
+      pointer-events: auto;
+    }
+
+    #devCheatGrid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    #devFailFlash {
+      background: rgba(255, 255, 255, 0.96);
+      color: #111;
+      font: 700 80px/1 Georgia, "Times New Roman", serif;
+      letter-spacing: 0.18em;
+      pointer-events: none;
+    }
+
     #vignette {
       background: radial-gradient(circle, transparent 40%, rgba(0, 0, 0, 0.72) 100%);
       mix-blend-mode: multiply;
@@ -827,6 +945,40 @@
     <div id="vignette"></div>
     <div id="flashOverlay"></div>
   </div>
+
+  <button id="devCheatButton" type="button">DEV</button>
+
+  <div id="devCodeModal">
+    <div id="devCodeCard">
+      <h3>Enter Code</h3>
+      <p>Input the unlock code.</p>
+      <input id="devCodeInput" type="password" inputmode="numeric" autocomplete="off" maxlength="8" />
+      <div class="devRow">
+        <button id="devCodeSubmit" class="devAction" type="button">Unlock</button>
+        <button id="devCodeCancel" class="devAction" type="button">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="devCheatPanel">
+    <div id="devCheatCard">
+      <h3>Cheats</h3>
+      <p>Use these only when you want a sandbox run.</p>
+      <div id="devCheatGrid">
+        <button id="cheatLives" class="devAction" type="button">Refill Lives</button>
+        <button id="cheatStamina" class="devAction" type="button">Refill Stamina</button>
+        <button id="cheatStabilize" class="devAction" type="button">Stabilize Box</button>
+        <button id="cheatCalm" class="devAction" type="button">Calm Fear</button>
+        <button id="cheatContainNearest" class="devAction" type="button">Contain Nearest</button>
+        <button id="cheatLifeEcho" class="devAction" type="button">Spawn Life Echo</button>
+      </div>
+      <div class="devRow" style="margin-top: 12px;">
+        <button id="devCheatClose" class="devAction" type="button">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="devFailFlash">67</div>
 
   <div id="touchControls">
     <div id="movePad" class="touchZone">
@@ -1246,6 +1398,20 @@
         openBrowserButton: document.getElementById("openBrowserButton"),
         copyLinkButton: document.getElementById("copyLinkButton"),
         shareLinkButton: document.getElementById("shareLinkButton"),
+        devCheatButton: document.getElementById("devCheatButton"),
+        devCodeModal: document.getElementById("devCodeModal"),
+        devCodeInput: document.getElementById("devCodeInput"),
+        devCodeSubmit: document.getElementById("devCodeSubmit"),
+        devCodeCancel: document.getElementById("devCodeCancel"),
+        devCheatPanel: document.getElementById("devCheatPanel"),
+        devCheatClose: document.getElementById("devCheatClose"),
+        devFailFlash: document.getElementById("devFailFlash"),
+        cheatLives: document.getElementById("cheatLives"),
+        cheatStamina: document.getElementById("cheatStamina"),
+        cheatStabilize: document.getElementById("cheatStabilize"),
+        cheatCalm: document.getElementById("cheatCalm"),
+        cheatContainNearest: document.getElementById("cheatContainNearest"),
+        cheatLifeEcho: document.getElementById("cheatLifeEcho"),
       };
 
       const canvas = document.getElementById("game");
@@ -1876,6 +2042,13 @@
             isStandalone: false,
             isLikelyWebView: false,
           };
+          this.dev = {
+            armedAt: -999,
+            lPresses: 0,
+            codePromptVisible: false,
+            unlocked: false,
+            cheatPanelVisible: false,
+          };
 
           this.resize();
           window.addEventListener("resize", () => this.resize());
@@ -1902,6 +2075,36 @@
           });
           HUD.viewToggleButton.addEventListener("click", () => {
             this.toggleViewMode();
+          });
+          HUD.devCheatButton.addEventListener("click", () => {
+            this.toggleCheatPanel();
+          });
+          HUD.devCodeSubmit.addEventListener("click", () => {
+            this.submitDevCode();
+          });
+          HUD.devCodeCancel.addEventListener("click", () => {
+            this.closeDevCodePrompt();
+          });
+          HUD.devCheatClose.addEventListener("click", () => {
+            this.toggleCheatPanel(false);
+          });
+          HUD.cheatLives.addEventListener("click", () => {
+            this.applyCheat("lives");
+          });
+          HUD.cheatStamina.addEventListener("click", () => {
+            this.applyCheat("stamina");
+          });
+          HUD.cheatStabilize.addEventListener("click", () => {
+            this.applyCheat("stabilize");
+          });
+          HUD.cheatCalm.addEventListener("click", () => {
+            this.applyCheat("calm");
+          });
+          HUD.cheatContainNearest.addEventListener("click", () => {
+            this.applyCheat("containNearest");
+          });
+          HUD.cheatLifeEcho.addEventListener("click", () => {
+            this.applyCheat("lifeEcho");
           });
           HUD.openBrowserButton.addEventListener("click", () => {
             this.tryOpenExternalBrowser();
@@ -1963,6 +2166,134 @@
           } else {
             await this.enterFullscreen();
           }
+        }
+
+        armDevSequence() {
+          this.dev.armedAt = performance.now();
+          this.dev.lPresses = 0;
+        }
+
+        trackDevSequence(key, down, event) {
+          if (event.repeat) return;
+          if (!down) return;
+          if (this.dev.codePromptVisible) return;
+
+          if ((key === "f" && this.keys.n) || (key === "n" && this.keys.f)) {
+            this.armDevSequence();
+            return;
+          }
+
+          if (key !== "l") return;
+          if (performance.now() - this.dev.armedAt > 5000) return;
+
+          this.dev.lPresses += 1;
+          if (this.dev.lPresses >= 3) {
+            this.openDevCodePrompt();
+          }
+        }
+
+        openDevCodePrompt() {
+          this.dev.codePromptVisible = true;
+          this.dev.armedAt = -999;
+          this.dev.lPresses = 0;
+          HUD.devCodeModal.classList.add("visible");
+          HUD.devCodeInput.value = "";
+          setTimeout(() => HUD.devCodeInput.focus(), 0);
+        }
+
+        closeDevCodePrompt() {
+          this.dev.codePromptVisible = false;
+          HUD.devCodeModal.classList.remove("visible");
+          HUD.devCodeInput.blur();
+        }
+
+        submitDevCode() {
+          const code = HUD.devCodeInput.value.trim();
+          if (code === "6741") {
+            this.dev.unlocked = true;
+            this.closeDevCodePrompt();
+            HUD.devCheatButton.classList.add("visible");
+            this.toggleCheatPanel(false);
+            this.pushMessage("Developer cheats unlocked.");
+            return;
+          }
+          this.failDevCode();
+        }
+
+        failDevCode() {
+          this.closeDevCodePrompt();
+          HUD.devFailFlash.classList.add("visible");
+          this.returnToStartScreen();
+          setTimeout(() => {
+            HUD.devFailFlash.classList.remove("visible");
+            this.drawSplash();
+          }, 2000);
+        }
+
+        returnToStartScreen() {
+          this.running = false;
+          this.gameOver = false;
+          this.endedBy = "";
+          this.message = "";
+          this.messageTimer = 0;
+          this.resetTouchInput();
+          this.toggleCheatPanel(false);
+          HUD.menu.classList.remove("hidden");
+          document.exitPointerLock?.();
+        }
+
+        toggleCheatPanel(force) {
+          if (!this.dev.unlocked) return;
+          const next = typeof force === "boolean" ? force : !this.dev.cheatPanelVisible;
+          this.dev.cheatPanelVisible = next;
+          HUD.devCheatPanel.classList.toggle("visible", next);
+        }
+
+        applyCheat(type) {
+          switch (type) {
+            case "lives":
+              this.player.lives = Math.max(this.player.lives, 5);
+              this.pushMessage("Cheat applied: lives refilled.");
+              break;
+            case "stamina":
+              this.player.stamina = PLAYER_MAX_STAMINA;
+              this.pushMessage("Cheat applied: stamina refilled.");
+              break;
+            case "stabilize":
+              this.box.stability = 100;
+              this.box.overload = false;
+              this.box.breakTimer = 0;
+              this.box.overloadTimer = 0;
+              this.pushMessage("Cheat applied: box stabilized.");
+              break;
+            case "calm":
+              this.player.fear = 0;
+              this.threatPressure = 0;
+              this.pushMessage("Cheat applied: fear calmed.");
+              break;
+            case "containNearest": {
+              const nearest = this.entities
+                .filter((entity) => this.isEntityActive(entity))
+                .sort((a, b) => distance(this.player, a) - distance(this.player, b))[0];
+              if (!nearest) {
+                this.pushMessage("Cheat: no active entity nearby to contain.");
+                break;
+              }
+              nearest.captured = true;
+              nearest.active = false;
+              this.stats.captures += 1;
+              this.syncActiveEntities();
+              this.pushMessage("Cheat applied: " + nearest.name + " contained.");
+              break;
+            }
+            case "lifeEcho":
+              this.spawnExtraLife();
+              this.pushMessage("Cheat applied: life echo spawned.");
+              break;
+            default:
+              break;
+          }
+          this.renderHud();
         }
 
         toggleViewMode() {
@@ -2147,6 +2478,10 @@
 
           this.resetTouchInput();
           this.syncActiveEntities();
+          HUD.devCheatButton.classList.toggle("visible", this.dev.unlocked);
+          this.toggleCheatPanel(false);
+          this.closeDevCodePrompt();
+          HUD.devFailFlash.classList.remove("visible");
 
           this.renderHud();
         }
@@ -2330,11 +2665,32 @@
         }
 
         onKey(event, down) {
-          this.keys[event.key.toLowerCase()] = down;
-          if (down && event.key.toLowerCase() === "e") {
+          const key = event.key.toLowerCase();
+          this.keys[key] = down;
+          this.trackDevSequence(key, down, event);
+
+          if (this.dev.codePromptVisible) {
+            if (down && key === "enter") {
+              event.preventDefault();
+              this.submitDevCode();
+            }
+            if (down && key === "escape") {
+              this.closeDevCodePrompt();
+            }
+            return;
+          }
+
+          if (this.dev.cheatPanelVisible) {
+            if (down && key === "escape") {
+              this.toggleCheatPanel(false);
+            }
+            return;
+          }
+
+          if (down && key === "e") {
             this.attemptCapture();
           }
-          if (down && (event.key.toLowerCase() === "c" || event.code === "KeyC")) {
+          if (down && (key === "c" || event.code === "KeyC")) {
             this.attemptSlide();
           }
           if (down && (event.code === "Space" || event.key === " ")) {
