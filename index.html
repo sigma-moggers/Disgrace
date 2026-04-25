@@ -94,6 +94,25 @@
       border: 1px solid var(--line);
       box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35), inset 0 0 30px rgba(255, 255, 255, 0.02);
       backdrop-filter: blur(10px);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .panel::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 28%),
+        repeating-linear-gradient(
+          180deg,
+          rgba(255, 255, 255, 0.018) 0,
+          rgba(255, 255, 255, 0.018) 1px,
+          transparent 2px,
+          transparent 6px
+        );
+      opacity: 0.55;
+      pointer-events: none;
     }
 
     #statusPanel,
@@ -154,6 +173,23 @@
       background: rgba(255, 255, 255, 0.04);
       overflow: hidden;
       position: relative;
+      box-shadow: inset 0 0 16px rgba(0, 0, 0, 0.28);
+    }
+
+    .bar::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        repeating-linear-gradient(
+          90deg,
+          rgba(255, 255, 255, 0.08) 0,
+          rgba(255, 255, 255, 0.08) 1px,
+          transparent 1px,
+          transparent 14px
+        );
+      opacity: 0.22;
+      pointer-events: none;
     }
 
     .barFill {
@@ -351,8 +387,11 @@
       justify-content: space-between;
       gap: 10px;
       padding: 8px 10px;
-      background: rgba(255, 255, 255, 0.03);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.02)),
+        rgba(255, 255, 255, 0.03);
       border-left: 2px solid rgba(255, 255, 255, 0.08);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.015);
     }
 
     .listItem strong {
@@ -390,6 +429,18 @@
       left: 0;
       width: 28px;
       height: 2px;
+    }
+
+    #crosshair span {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 6px;
+      height: 6px;
+      transform: translate(-50%, -50%);
+      border-radius: 50%;
+      background: rgba(255, 244, 244, 0.8);
+      box-shadow: 0 0 12px rgba(255, 120, 120, 0.35);
     }
 
     #glitchOverlay,
@@ -770,7 +821,7 @@
   <canvas id="game"></canvas>
 
   <div id="overlay">
-    <div id="crosshair"></div>
+    <div id="crosshair"><span></span></div>
     <div id="capturePrompt" class="panel"></div>
     <div id="glitchOverlay"></div>
     <div id="vignette"></div>
@@ -845,7 +896,7 @@
       <div id="clueList"></div>
     </div>
 
-    <div id="messagePanel" class="panel">Press `Start Run`, click the screen, look with the mouse, and move with `WASD`. Sprint with `Shift`. Slide with `C`. Capture with `E`. Shove with `Space`.</div>
+    <div id="messagePanel" class="panel">Press `Start Run`, click the screen, look with the mouse, and move with `WASD`. Sprint with `Shift`. Slide with `C`. Capture with `E`. Shove with `Space`. Follow the warning tones.</div>
   </div>
 
   <div id="menu">
@@ -891,7 +942,7 @@
       "use strict";
 
       const TAU = Math.PI * 2;
-      const FOV = Math.PI / 1.8;
+      const FOV = Math.PI / 1.55;
       const WORLD_SIZE = 19;
       const ENTITY_COUNT = 10;
       const MAX_CAPTURE_RANGE = 3.2;
@@ -900,7 +951,7 @@
       const LOOK_PITCH_SCALE = 0.34;
       const PLAYER_MAX_STAMINA = 130;
       const SLIDE_DURATION = 0.9;
-      const SLIDE_CAMERA_DROP = 0.14;
+      const SLIDE_CAMERA_DROP = 0.2;
       const SLIDE_ENTRY_SPEED = 5.6;
       const SLIDE_EXIT_SPEED = 3.35;
       const SLIDE_ENTITY_CLEARANCE = 0.52;
@@ -1252,6 +1303,43 @@
         return list[Math.floor(rng() * list.length)];
       }
 
+      function widenCorridors(grid, rng) {
+        const height = grid.length;
+        const width = grid[0].length;
+        const carve = [];
+
+        for (let y = 1; y < height - 1; y += 1) {
+          for (let x = 1; x < width - 1; x += 1) {
+            if (grid[y][x] !== 0) continue;
+
+            const left = grid[y][x - 1] === 0;
+            const right = grid[y][x + 1] === 0;
+            const up = grid[y - 1][x] === 0;
+            const down = grid[y + 1][x] === 0;
+
+            if (left && right) {
+              const widenUp = !up && rng() < 0.42;
+              const widenDown = !down && rng() < 0.42;
+              if (widenUp) carve.push({ x, y: y - 1 });
+              if (widenDown) carve.push({ x, y: y + 1 });
+            }
+
+            if (up && down) {
+              const widenLeft = !left && rng() < 0.42;
+              const widenRight = !right && rng() < 0.42;
+              if (widenLeft) carve.push({ x: x - 1, y });
+              if (widenRight) carve.push({ x: x + 1, y });
+            }
+          }
+        }
+
+        for (const cell of carve) {
+          if (cell.x > 0 && cell.y > 0 && cell.x < width - 1 && cell.y < height - 1) {
+            grid[cell.y][cell.x] = 0;
+          }
+        }
+      }
+
       function makeGrid(size) {
         const grid = Array.from({ length: size }, () => Array(size).fill(1));
         const stack = [{ x: 1, y: 1 }];
@@ -1291,6 +1379,8 @@
           const y = 1 + Math.floor(rng() * (size - 2));
           grid[y][x] = 0;
         }
+
+        widenCorridors(grid, rng);
 
         return { grid, rng };
       }
@@ -1422,6 +1512,8 @@
           this.noise = null;
           this.noiseFilter = null;
           this.noiseGain = null;
+          this.lastWarningAt = -999;
+          this.lastWarningEntityId = "";
           this.started = false;
         }
 
@@ -1537,6 +1629,86 @@
           this.pulseEvent(freq * 2.2, 0.035, 0.004 + intensity * 0.006, "sine");
         }
 
+        getWarningVoice(entityId) {
+          switch (entityId) {
+            case "nocturne":
+              return { freq: 178, type: "triangle" };
+            case "velour":
+              return { freq: 244, type: "sine" };
+            case "penance":
+              return { freq: 206, type: "square" };
+            case "lament":
+              return { freq: 136, type: "sawtooth" };
+            case "silhouette":
+              return { freq: 292, type: "triangle" };
+            case "eulogy":
+              return { freq: 228, type: "sine" };
+            case "crescent":
+              return { freq: 320, type: "triangle" };
+            case "obsidian":
+              return { freq: 118, type: "square" };
+            case "vespers":
+              return { freq: 168, type: "sine" };
+            case "relic":
+              return { freq: 274, type: "triangle" };
+            default:
+              return { freq: 220, type: "sine" };
+          }
+        }
+
+        warningEvent(entity, bearing, proximity, stress) {
+          if (!this.ctx || !this.master) return;
+
+          const voice = this.getWarningVoice(entity.id);
+          const now = this.ctx.currentTime;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          const filter = this.ctx.createBiquadFilter();
+          const panner = this.ctx.createStereoPanner ? this.ctx.createStereoPanner() : null;
+          const pan = clamp(Math.sin(bearing) * 0.92, -1, 1);
+          const volume = 0.012 + proximity * 0.04 + stress * 0.01;
+          const duration = 0.08 + proximity * 0.06;
+
+          osc.type = voice.type;
+          osc.frequency.setValueAtTime(voice.freq, now);
+          osc.frequency.exponentialRampToValueAtTime(voice.freq * (1.06 + proximity * 0.08), now + duration);
+
+          filter.type = "bandpass";
+          filter.frequency.setValueAtTime(voice.freq * (1.7 + proximity * 0.35), now);
+          filter.Q.value = 3.2;
+
+          gain.gain.setValueAtTime(volume, now);
+          gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+
+          osc.connect(filter);
+          filter.connect(gain);
+          if (panner) {
+            panner.pan.setValueAtTime(pan, now);
+            gain.connect(panner);
+            panner.connect(this.master);
+          } else {
+            gain.connect(this.master);
+          }
+
+          osc.start(now);
+          osc.stop(now + duration);
+
+          const echo = this.ctx.createOscillator();
+          const echoGain = this.ctx.createGain();
+          echo.type = "sine";
+          echo.frequency.setValueAtTime(voice.freq * 1.5, now + 0.045);
+          echoGain.gain.setValueAtTime(volume * 0.42, now + 0.045);
+          echoGain.gain.exponentialRampToValueAtTime(0.0001, now + duration + 0.05);
+          echo.connect(echoGain);
+          if (panner) {
+            echoGain.connect(panner);
+          } else {
+            echoGain.connect(this.master);
+          }
+          echo.start(now + 0.045);
+          echo.stop(now + duration + 0.05);
+        }
+
         update(game) {
           if (!this.started || !this.ctx) return;
 
@@ -1568,6 +1740,28 @@
           this.noiseGain.gain.linearRampToValueAtTime((0.004 + distortion * 0.022) * silence, now + 0.08);
           this.noiseFilter.frequency.linearRampToValueAtTime(680 + overload * 520 + stress * 240 + panic * 120, now + 0.08);
           this.distortion.curve = this.makeDistortionCurve(24 + distortion * 260);
+
+          const nearest = game.entities
+            .filter((entity) => game.isEntityActive(entity))
+            .map((entity) => ({
+              entity,
+              dist: distance(game.player, entity),
+              bearing: wrapAngle(Math.atan2(entity.x - game.player.x, entity.y - game.player.y) - game.player.angle),
+            }))
+            .sort((a, b) => a.dist - b.dist)[0];
+
+          if (!nearest) return;
+
+          const proximity = clamp(1 - nearest.dist / 10, 0, 1);
+          if (proximity <= 0.02) return;
+
+          const interval = lerp(1.35, 0.24, proximity);
+          const entitySwap = this.lastWarningEntityId !== nearest.entity.id;
+          if (entitySwap || game.time - this.lastWarningAt >= interval) {
+            this.warningEvent(nearest.entity, nearest.bearing, proximity, stress);
+            this.lastWarningAt = game.time;
+            this.lastWarningEntityId = nearest.entity.id;
+          }
         }
       }
 
@@ -3148,6 +3342,7 @@
           this.player.slideTimer = SLIDE_DURATION;
           this.player.slideCooldown = 2.4;
           this.player.sliding = true;
+          this.player.slideVisual = Math.max(this.player.slideVisual, 0.35);
           this.player.stamina = Math.max(0, this.player.stamina - 12);
           this.flashTimer = Math.max(this.flashTimer, 0.08);
           this.pushMessage("You drop low and slide through the corridor.");
@@ -3471,6 +3666,13 @@
           ctx.fillStyle = fog;
           ctx.fillRect(0, horizon - height * 0.06, width, height);
 
+          const ceilingHaze = ctx.createLinearGradient(0, 0, 0, horizon);
+          ceilingHaze.addColorStop(0, "rgba(150, 30, 30, " + (0.05 + stress * 0.03).toFixed(3) + ")");
+          ceilingHaze.addColorStop(0.55, "rgba(40, 20, 44, 0.04)");
+          ceilingHaze.addColorStop(1, "rgba(0, 0, 0, 0)");
+          ctx.fillStyle = ceilingHaze;
+          ctx.fillRect(0, 0, width, horizon);
+
           ctx.save();
           ctx.strokeStyle = "rgba(255, 255, 255, 0.02)";
           ctx.lineWidth = 1;
@@ -3482,6 +3684,21 @@
             ctx.stroke();
           }
           ctx.restore();
+
+          ctx.save();
+          ctx.globalCompositeOperation = "screen";
+          for (let i = 0; i < 18; i += 1) {
+            const t = this.time * 0.11 + i * 4.73;
+            const sx = fract(Math.sin(t * 1.41) * 321.4) * width;
+            const sy = fract(Math.cos(t * 1.17) * 193.8) * horizon;
+            const radius = 10 + fract(Math.sin(t * 2.9) * 41.2) * 30;
+            const glow = ctx.createRadialGradient(sx, sy, 0, sx, sy, radius);
+            glow.addColorStop(0, "rgba(255, 120, 120, " + (0.015 + stress * 0.015).toFixed(3) + ")");
+            glow.addColorStop(1, "rgba(255, 120, 120, 0)");
+            ctx.fillStyle = glow;
+            ctx.fillRect(sx - radius, sy - radius, radius * 2, radius * 2);
+          }
+          ctx.restore();
         }
 
         drawWallSlice(screenX, y, sliceWidth, sliceHeight, shade, hit, angle, width, height) {
@@ -3489,6 +3706,7 @@
           const tex = fract(sideAxis);
           const edgeDark = 1 - clamp(Math.min(tex, 1 - tex) * 5.5, 0, 1);
           const grime = this.noise2d(Math.floor(hit.hitX * 3), Math.floor(hit.hitY * 3));
+          const pock = this.noise2d(Math.floor(hit.hitX * 7 + 11), Math.floor(hit.hitY * 7 + 19));
           const vein = Math.sin((hit.hitX * 12.4) + (hit.hitY * 9.7) + this.time * 0.3);
           const pulse = 0.5 + Math.sin(this.time * 1.4 + hit.hitX * 0.7 + hit.hitY * 0.5) * 0.5;
           const baseLight = 18 + shade * 26;
@@ -3507,6 +3725,11 @@
             ctx.fillRect(screenX, y + sliceHeight * 0.08, sliceWidth, sliceHeight * (0.32 + grime * 0.2));
           }
 
+          if (pock > 0.62) {
+            ctx.fillStyle = "rgba(255, 210, 190, " + (0.03 + (pock - 0.62) * 0.1).toFixed(3) + ")";
+            ctx.fillRect(screenX, y + sliceHeight * (0.18 + tex * 0.22), sliceWidth, Math.max(2, sliceHeight * 0.03));
+          }
+
           if (vein > 0.78) {
             ctx.fillStyle = "rgba(120, 26, 26, " + (0.09 + pulse * 0.08).toFixed(3) + ")";
             ctx.fillRect(screenX, y + sliceHeight * (0.16 + tex * 0.45), sliceWidth, Math.max(2, sliceHeight * 0.06));
@@ -3521,6 +3744,9 @@
             ctx.fillStyle = "rgba(255, 80, 80, " + ((1 - this.box.stability / 100) * 0.08).toFixed(3) + ")";
             ctx.fillRect(screenX, y + sliceHeight * 0.04, sliceWidth, sliceHeight * 0.92);
           }
+
+          ctx.fillStyle = "rgba(255, 255, 255, " + (0.02 + shade * 0.04).toFixed(3) + ")";
+          ctx.fillRect(screenX, y + 1, sliceWidth, Math.max(1, sliceHeight * 0.018));
         }
 
         drawGhostSprite(screenX, y, spriteWidth, spriteHeight, color, flicker) {
@@ -3573,6 +3799,69 @@
           ctx.quadraticCurveTo(-spriteWidth * 0.18, spriteHeight * 1.02, -spriteWidth * 0.26, spriteHeight * 0.82);
           ctx.quadraticCurveTo(-spriteWidth * 0.5, spriteHeight * 0.14, 0, 0);
           ctx.fill();
+
+          if (entity.id === "nocturne") {
+            ctx.strokeStyle = "rgba(188, 210, 255, " + (0.18 + near * 0.18).toFixed(3) + ")";
+            ctx.lineWidth = Math.max(1.2, spriteWidth * 0.022);
+            ctx.beginPath();
+            ctx.moveTo(-spriteWidth * 0.18, spriteHeight * 0.22);
+            ctx.quadraticCurveTo(-spriteWidth * 0.4, spriteHeight * 0.44, -spriteWidth * 0.22, spriteHeight * 0.9);
+            ctx.moveTo(spriteWidth * 0.18, spriteHeight * 0.22);
+            ctx.quadraticCurveTo(spriteWidth * 0.4, spriteHeight * 0.44, spriteWidth * 0.22, spriteHeight * 0.9);
+            ctx.stroke();
+
+            ctx.fillStyle = "rgba(160, 186, 255, 0.12)";
+            ctx.beginPath();
+            ctx.moveTo(0, -spriteHeight * 0.02);
+            ctx.lineTo(spriteWidth * 0.08, spriteHeight * 0.08);
+            ctx.lineTo(0, spriteHeight * 0.16);
+            ctx.lineTo(-spriteWidth * 0.08, spriteHeight * 0.08);
+            ctx.closePath();
+            ctx.fill();
+          }
+
+          if (entity.id === "velour") {
+            ctx.fillStyle = "rgba(248, 244, 244, 0.1)";
+            ctx.beginPath();
+            ctx.ellipse(0, spriteHeight * 0.26, spriteWidth * 0.22, spriteHeight * 0.16, 0, 0, TAU);
+            ctx.fill();
+            ctx.fillRect(-spriteWidth * 0.18, spriteHeight * 0.18, spriteWidth * 0.08, spriteHeight * 0.56);
+            ctx.fillRect(spriteWidth * 0.1, spriteHeight * 0.14, spriteWidth * 0.08, spriteHeight * 0.62);
+            ctx.fillStyle = "rgba(255, 255, 255, 0.05)";
+            ctx.fillRect(-spriteWidth * 0.03, spriteHeight * 0.12, spriteWidth * 0.06, spriteHeight * 0.66);
+          }
+
+          if (entity.id === "penance") {
+            ctx.strokeStyle = "rgba(255, 126, 126, " + (0.2 + near * 0.12).toFixed(3) + ")";
+            ctx.lineWidth = Math.max(1.4, spriteWidth * 0.022);
+            ctx.beginPath();
+            ctx.moveTo(0, spriteHeight * 0.08);
+            ctx.lineTo(-spriteWidth * 0.1, spriteHeight * 0.24);
+            ctx.lineTo(0, spriteHeight * 0.42);
+            ctx.lineTo(spriteWidth * 0.1, spriteHeight * 0.62);
+            ctx.lineTo(0, spriteHeight * 0.84);
+            ctx.stroke();
+
+            ctx.fillStyle = "rgba(255, 164, 164, 0.08)";
+            ctx.beginPath();
+            ctx.moveTo(-spriteWidth * 0.18, spriteHeight * 0.14);
+            ctx.lineTo(-spriteWidth * 0.04, spriteHeight * 0.42);
+            ctx.lineTo(-spriteWidth * 0.14, spriteHeight * 0.8);
+            ctx.closePath();
+            ctx.fill();
+          }
+
+          if (entity.id === "lament") {
+            ctx.strokeStyle = "rgba(160, 214, 230, " + (0.18 + near * 0.14).toFixed(3) + ")";
+            ctx.lineWidth = Math.max(1.2, spriteWidth * 0.02);
+            for (const drop of [-0.16, 0, 0.16]) {
+              ctx.beginPath();
+              ctx.moveTo(drop * spriteWidth, spriteHeight * 0.12);
+              ctx.quadraticCurveTo(drop * spriteWidth + spriteWidth * 0.08, spriteHeight * 0.36, drop * spriteWidth, spriteHeight * 0.66);
+              ctx.quadraticCurveTo(drop * spriteWidth - spriteWidth * 0.07, spriteHeight * 0.5, drop * spriteWidth, spriteHeight * 0.12);
+              ctx.stroke();
+            }
+          }
 
           if (entity.id === "obsidian") {
             const fracture = 0.45 + pulse * 0.3;
@@ -3632,6 +3921,14 @@
             ctx.fillStyle = "rgba(200, 150, 255, 0.18)";
             ctx.fillRect(-spriteWidth * 0.34, spriteHeight * 0.08, spriteWidth * 0.16, spriteHeight * 0.74);
             ctx.fillRect(spriteWidth * 0.18, spriteHeight * 0.04, spriteWidth * 0.12, spriteHeight * 0.68);
+            ctx.strokeStyle = "rgba(216, 180, 255, 0.2)";
+            ctx.lineWidth = Math.max(1, spriteWidth * 0.018);
+            ctx.beginPath();
+            ctx.moveTo(-spriteWidth * 0.24, spriteHeight * 0.14);
+            ctx.lineTo(spriteWidth * 0.22, spriteHeight * 0.32);
+            ctx.moveTo(-spriteWidth * 0.18, spriteHeight * 0.42);
+            ctx.lineTo(spriteWidth * 0.16, spriteHeight * 0.62);
+            ctx.stroke();
           }
 
           if (entity.id === "crescent") {
@@ -3640,6 +3937,11 @@
             ctx.beginPath();
             ctx.arc(spriteWidth * 0.1, spriteHeight * 0.18, spriteWidth * 0.16, -Math.PI / 2, Math.PI / 2);
             ctx.stroke();
+            ctx.strokeStyle = "rgba(220, 240, 255, 0.16)";
+            ctx.lineWidth = Math.max(1, spriteWidth * 0.018);
+            ctx.beginPath();
+            ctx.arc(0, spriteHeight * 0.26, spriteWidth * 0.24, Math.PI * 0.1, Math.PI * 0.9);
+            ctx.stroke();
           }
 
           if (entity.id === "relic") {
@@ -3647,6 +3949,39 @@
             ctx.lineWidth = Math.max(1, spriteWidth * 0.025);
             ctx.strokeRect(-spriteWidth * 0.16, spriteHeight * 0.18, spriteWidth * 0.32, spriteHeight * 0.18);
             ctx.strokeRect(-spriteWidth * 0.12, spriteHeight * 0.45, spriteWidth * 0.24, spriteHeight * 0.18);
+            ctx.strokeStyle = "rgba(255, 220, 255, 0.18)";
+            ctx.beginPath();
+            ctx.moveTo(-spriteWidth * 0.14, spriteHeight * 0.27);
+            ctx.lineTo(spriteWidth * 0.14, spriteHeight * 0.54);
+            ctx.moveTo(spriteWidth * 0.14, spriteHeight * 0.27);
+            ctx.lineTo(-spriteWidth * 0.14, spriteHeight * 0.54);
+            ctx.stroke();
+          }
+
+          if (entity.id === "vespers") {
+            ctx.fillStyle = "rgba(244, 232, 196, 0.12)";
+            ctx.beginPath();
+            ctx.moveTo(-spriteWidth * 0.08, spriteHeight * 0.18);
+            ctx.quadraticCurveTo(-spriteWidth * 0.38, spriteHeight * 0.34, -spriteWidth * 0.18, spriteHeight * 0.72);
+            ctx.quadraticCurveTo(-spriteWidth * 0.04, spriteHeight * 0.58, -spriteWidth * 0.02, spriteHeight * 0.26);
+            ctx.closePath();
+            ctx.fill();
+            ctx.beginPath();
+            ctx.moveTo(spriteWidth * 0.08, spriteHeight * 0.18);
+            ctx.quadraticCurveTo(spriteWidth * 0.38, spriteHeight * 0.34, spriteWidth * 0.18, spriteHeight * 0.72);
+            ctx.quadraticCurveTo(spriteWidth * 0.04, spriteHeight * 0.58, spriteWidth * 0.02, spriteHeight * 0.26);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.strokeStyle = "rgba(250, 238, 210, 0.2)";
+            ctx.lineWidth = Math.max(1, spriteWidth * 0.018);
+            ctx.beginPath();
+            ctx.moveTo(-spriteWidth * 0.24, spriteHeight * 0.42);
+            ctx.lineTo(-spriteWidth * 0.06, spriteHeight * 0.58);
+            ctx.lineTo(0, spriteHeight * 0.78);
+            ctx.lineTo(spriteWidth * 0.06, spriteHeight * 0.58);
+            ctx.lineTo(spriteWidth * 0.24, spriteHeight * 0.42);
+            ctx.stroke();
           }
 
           const eyeGlow = entity.id === "velour"
@@ -3713,6 +4048,12 @@
           ctx.fillStyle = skyGradient;
           ctx.fillRect(0, 0, width, horizon);
 
+          const floorWash = ctx.createRadialGradient(width * 0.5, horizon + height * 0.08, 0, width * 0.5, horizon + height * 0.08, width * 0.72);
+          floorWash.addColorStop(0, "rgba(255, 100, 100, 0.04)");
+          floorWash.addColorStop(1, "rgba(255, 100, 100, 0)");
+          ctx.fillStyle = floorWash;
+          ctx.fillRect(0, horizon, width, height - horizon);
+
           this.drawAmbientDepth(width, height, horizon);
 
           const rayStep = this.screenProfile?.rayStep || 2;
@@ -3734,6 +4075,7 @@
 
           this.drawWorldEffects(width, height, horizon, viewState);
           this.drawEntities(width, height, horizon, viewState);
+          this.drawFirstPersonBody(width, height);
           this.drawPost(width, height, viewState);
         }
 
@@ -3958,6 +4300,128 @@
           ctx.restore();
         }
 
+        drawFirstPersonBody(width, height) {
+          const strideThreshold = this.player.sprinting ? 0.72 : 0.5;
+          const movePhase = strideThreshold > 0 ? (this.player.stepCycle / strideThreshold) * TAU : 0;
+          const moving = this.player.stepCycle > 0.001 || this.player.sliding;
+          const swing = moving ? Math.sin(movePhase) : 0;
+          const counterSwing = moving ? Math.cos(movePhase) : 0;
+          const sprintBoost = this.player.sprinting ? 1.22 : 1;
+          const slideBlend = this.player.slideVisual;
+          const idleBreath = Math.sin(this.time * 1.9) * 3;
+          const bobY = idleBreath + swing * 10 * sprintBoost * (1 - slideBlend * 0.45) + slideBlend * 18;
+          const bobX = counterSwing * 8 * sprintBoost;
+          const bodyScale = this.isMobileProfile() ? 0.88 : 1;
+          const armWidth = width * 0.07 * bodyScale;
+          const armHeight = height * 0.2 * bodyScale;
+          const handSize = width * 0.038 * bodyScale;
+          const legWidth = width * 0.066 * bodyScale;
+          const legHeight = height * 0.22 * bodyScale;
+          const torsoY = height * (0.92 + slideBlend * 0.04) + bobY;
+          const leftArmAngle = -0.22 - swing * 0.32 * sprintBoost + slideBlend * 0.38;
+          const rightArmAngle = 0.22 + swing * 0.32 * sprintBoost - slideBlend * 0.38;
+          const leftLegAngle = 0.12 + swing * 0.22 * sprintBoost - slideBlend * 0.18;
+          const rightLegAngle = -0.12 - swing * 0.22 * sprintBoost + slideBlend * 0.18;
+
+          const drawBlockLimb = (x, y, w, h, angle, palette, hand = false) => {
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.rotate(angle);
+
+            ctx.fillStyle = palette.side;
+            ctx.fillRect(-w * 0.5, 0, w, h);
+            ctx.fillStyle = palette.front;
+            ctx.fillRect(-w * 0.42, h * 0.04, w * 0.84, h * 0.92);
+            ctx.fillStyle = palette.highlight;
+            ctx.fillRect(-w * 0.28, h * 0.08, w * 0.18, h * 0.82);
+
+            if (hand) {
+              ctx.fillStyle = palette.skin;
+              ctx.fillRect(-w * 0.32, h * 0.82, w * 0.64, h * 0.26);
+              ctx.fillStyle = "rgba(255,255,255,0.08)";
+              ctx.fillRect(-w * 0.24, h * 0.86, w * 0.14, h * 0.14);
+            } else {
+              ctx.fillStyle = palette.shoe;
+              ctx.fillRect(-w * 0.38, h * 0.92, w * 0.76, h * 0.22);
+              ctx.fillStyle = "rgba(255,255,255,0.06)";
+              ctx.fillRect(-w * 0.22, h * 0.08, w * 0.12, h * 0.74);
+            }
+
+            ctx.restore();
+          };
+
+          const armPalette = {
+            front: "#2f3747",
+            side: "#232a38",
+            highlight: "rgba(255,255,255,0.08)",
+            skin: "#f0c7a4",
+            shoe: "#11151d",
+          };
+          const legPalette = {
+            front: "#324665",
+            side: "#26364f",
+            highlight: "rgba(255,255,255,0.08)",
+            skin: "#f0c7a4",
+            shoe: "#181c24",
+          };
+
+          ctx.save();
+          ctx.globalAlpha = 0.96;
+
+          ctx.fillStyle = "rgba(0, 0, 0, 0.16)";
+          ctx.beginPath();
+          ctx.ellipse(width * 0.5, torsoY + height * 0.04, width * 0.22, height * 0.05, 0, 0, TAU);
+          ctx.fill();
+
+          drawBlockLimb(
+            width * 0.23 - bobX * 0.45,
+            torsoY - armHeight * (0.9 - slideBlend * 0.2),
+            armWidth,
+            armHeight,
+            leftArmAngle,
+            armPalette,
+            true
+          );
+          drawBlockLimb(
+            width * 0.77 + bobX * 0.45,
+            torsoY - armHeight * (0.9 - slideBlend * 0.2),
+            armWidth,
+            armHeight,
+            rightArmAngle,
+            armPalette,
+            true
+          );
+
+          drawBlockLimb(
+            width * 0.42 - bobX * 0.25,
+            torsoY - legHeight * 0.18,
+            legWidth,
+            legHeight,
+            leftLegAngle,
+            legPalette,
+            false
+          );
+          drawBlockLimb(
+            width * 0.58 + bobX * 0.25,
+            torsoY - legHeight * 0.18,
+            legWidth,
+            legHeight,
+            rightLegAngle,
+            legPalette,
+            false
+          );
+
+          ctx.fillStyle = "rgba(56, 72, 98, 0.92)";
+          ctx.fillRect(width * 0.44, torsoY - height * 0.02, width * 0.12, height * 0.09);
+          ctx.fillStyle = "rgba(255,255,255,0.08)";
+          ctx.fillRect(width * 0.458, torsoY - height * 0.008, width * 0.02, height * 0.055);
+          ctx.fillRect(width * 0.522, torsoY - height * 0.008, width * 0.014, height * 0.055);
+          ctx.fillStyle = "rgba(20, 24, 34, 0.86)";
+          ctx.fillRect(width * 0.47, torsoY + height * 0.01, width * 0.06, height * 0.028);
+
+          ctx.restore();
+        }
+
         drawPost(width, height, viewState = this.viewState || this.getViewState()) {
           const stress = this.threatPressure + this.player.fear / 120 + (100 - this.box.stability) / 150;
           const jitter = (stress * (this.box.overload ? 6 : 2) + this.box.shake) * Math.sin(this.time * 23);
@@ -4058,7 +4522,7 @@
             HUD.capturePrompt.classList.remove("visible");
           }
 
-          const freeEntities = this.activeEntities.slice();
+          const freeEntities = this.entities.filter((entity) => this.isEntityActive(entity));
           freeEntities.sort((a, b) => distance(this.player, a) - distance(this.player, b));
           const nearest = freeEntities[0];
           if (nearest) {
@@ -4139,8 +4603,8 @@
             this.gameOver
               ? this.endedBy + " Press Start Run to descend again."
               : this.isMobileProfile()
-                ? "Left pad moves. Right pad looks. Use the action buttons to sprint, stabilize, slide, shove, and capture."
-                : "Mouse look. WASD move. Shift sprint. C slide. E capture. Space shove. F stabilize. Use the View button to swap camera modes."
+                ? "Left pad moves. Right pad looks. Use the action buttons to sprint, stabilize, slide, shove, and capture. Follow the warning tones."
+                : "Mouse look. WASD move. Shift sprint. C slide. E capture. Space shove. F stabilize. Follow the warning tones."
           );
         }
 
@@ -4246,3 +4710,4 @@
   </script>
 </body>
 </html>
+ 
