@@ -1110,7 +1110,6 @@
       const SLIDE_ENTRY_SPEED = 5.6;
       const SLIDE_EXIT_SPEED = 3.35;
       const SLIDE_ENTITY_CLEARANCE = 0.52;
-      const FORWARD_DRIFT_COUNTERSTRAFE = 0.165;
       const RELIC_HOLD_DURATION = 30;
       const OVERLOAD_RECOVERY_TIME = 40;
       const OVERLOAD_RECOVERY_COOLDOWN = 12;
@@ -2100,7 +2099,6 @@
             slideCooldown: 0,
             slideDir: 0,
             slideVisual: 0,
-            forwardLockAngle: null,
             steadyTime: 0,
             stepCycle: 0,
             shoveCooldown: 0,
@@ -2557,7 +2555,6 @@
             slideCooldown: 0,
             slideDir: 0,
             slideVisual: 0,
-            forwardLockAngle: null,
             steadyTime: 0,
             stepCycle: 0,
             shoveCooldown: 0,
@@ -3101,21 +3098,6 @@
           let strafe = ((this.keys["d"] ? 1 : 0) - (this.keys["a"] ? 1 : 0)) + touchStrafe;
           if (Math.abs(forward) < 0.035) forward = 0;
           if (Math.abs(strafe) < 0.035) strafe = 0;
-          const forwardLockActive =
-            !this.isMobileProfile() &&
-            !this.player.sliding &&
-            Math.abs(strafe) < 0.001 &&
-            Math.abs(forward) > 0.08;
-          if (forwardLockActive && forward > 0) {
-            strafe -= FORWARD_DRIFT_COUNTERSTRAFE;
-          }
-          if (forwardLockActive) {
-            if (this.player.forwardLockAngle === null) {
-              this.player.forwardLockAngle = this.player.angle;
-            }
-          } else {
-            this.player.forwardLockAngle = null;
-          }
           const stabilizing = !!this.keys["f"];
           const sprinting = !!this.keys["shift"] && this.player.stamina > 5 && forward > 0 && !stabilizing;
           this.player.sprinting = sprinting;
@@ -3164,11 +3146,10 @@
                 forward /= moveAmount;
                 strafe /= moveAmount;
               }
-              const moveAngle = this.player.forwardLockAngle === null ? this.player.angle : this.player.forwardLockAngle;
-              const forwardX = Math.sin(moveAngle);
-              const forwardY = Math.cos(moveAngle);
-              const strafeX = Math.cos(moveAngle);
-              const strafeY = -Math.sin(moveAngle);
+              const forwardX = Math.sin(this.player.angle);
+              const forwardY = Math.cos(this.player.angle);
+              const strafeX = Math.cos(this.player.angle);
+              const strafeY = -Math.sin(this.player.angle);
               dx = (forwardX * forward + strafeX * strafe) * moveSpeed * dt;
               dy = (forwardY * forward + strafeY * strafe) * moveSpeed * dt;
             }
