@@ -18,6 +18,9 @@ A psychological horror chase game driven by dynamic AI entities, escalating tens
 - Movement system
 - Camera
 - Stamina
+- Mouse-look direction
+- Camera-relative WASD movement
+- Forward input follows the current view angle
 
 ---
 
