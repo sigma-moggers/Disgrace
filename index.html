@@ -10,6 +10,7 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="application-name" content="Disgrace" />
   <link rel="manifest" href="site.webmanifest" />
+  <script src="firebase-config.js"></script>
   <title>Disgrace</title>
   <style>
     :root {
@@ -1070,7 +1071,7 @@
             If the box fails, escapes return worse than before. You are not just hunting entities. You are trying to stop something spreading, something learning, before there is nothing left to contain and nothing left to protect.
           </div>
           <div class="menuBox">
-            Firebase is optional. If you define `window.__DISGRACE_FIREBASE_CONFIG` before this script loads, the game attempts anonymous auth and remote save sync. If it fails, the run continues on `localStorage`.
+            Firebase is optional. If you add your web config to `firebase-config.js`, the game attempts anonymous auth and remote save sync. If any remote step fails, it silently falls back to local storage for the session.
           </div>
         </div>
         <div class="buttonRow">
@@ -1097,12 +1098,14 @@
       const FOV = Math.PI / 1.55;
       const WORLD_SIZE = 19;
       const ENTITY_COUNT = 10;
-      const MAX_CAPTURE_RANGE = 3.2;
+      const MAX_CAPTURE_RANGE = 6.4;
       const PLAYER_RADIUS = 0.2;
       const SAVE_KEY = "disgrace-save-v1";
       const LOOK_PITCH_SCALE = 0.34;
       const PLAYER_MAX_STAMINA = 130;
       const SLIDE_DURATION = 0.9;
+      const FIREBASE_SCRIPT_TIMEOUT = 5000;
+      const FIREBASE_SYNC_TIMEOUT = 3500;
       const SLIDE_CAMERA_DROP = 0.2;
       const SLIDE_ENTRY_SPEED = 5.6;
       const SLIDE_EXIT_SPEED = 3.35;
@@ -1561,8 +1564,67 @@
         return cells;
       }
 
-      function loadScript(src) {
+      function withTimeout(promise, timeoutMs, label) {
         return new Promise((resolve, reject) => {
+          const timer = setTimeout(() => reject(new Error(label + " timed out.")), timeoutMs);
+          Promise.resolve(promise).then(
+            (value) => {
+              clearTimeout(timer);
+              resolve(value);
+            },
+            (error) => {
+              clearTimeout(timer);
+              reject(error);
+            }
+          );
+        });
+      }
+
+      function createMemoryStore() {
+        const data = Object.create(null);
+        return {
+          label: "memory-only",
+          getItem(key) {
+            return Object.prototype.hasOwnProperty.call(data, key) ? data[key] : null;
+          },
+          setItem(key, value) {
+            data[key] = String(value);
+          },
+          removeItem(key) {
+            delete data[key];
+          },
+        };
+      }
+
+      function resolvePersistentStore() {
+        const candidates = [
+          ["localStorage", () => window.localStorage],
+          ["sessionStorage", () => window.sessionStorage],
+        ];
+
+        for (const [label, getter] of candidates) {
+          try {
+            const store = getter();
+            if (!store) continue;
+            const probe = "__disgrace_probe__";
+            store.setItem(probe, "1");
+            store.removeItem(probe);
+            return { label, store };
+          } catch (error) {
+            console.warn(label + " unavailable, trying next fallback.", error);
+          }
+        }
+
+        return { label: "memory-only", store: createMemoryStore() };
+      }
+
+      function loadScript(src, timeoutMs = FIREBASE_SCRIPT_TIMEOUT) {
+        loadScript.cache = loadScript.cache || new Map();
+        if (loadScript.cache.has(src)) {
+          return loadScript.cache.get(src);
+        }
+
+        const promise = new Promise((resolve, reject) => {
           const script = document.createElement("script");
           script.src = src;
           script.async = true;
@@ -1570,17 +1632,42 @@
           script.onerror = () => reject(new Error("Failed to load " + src));
           document.head.appendChild(script);
         });
+
+        const guarded = withTimeout(promise, timeoutMs, "Loading " + src);
+        loadScript.cache.set(src, guarded);
+        return guarded;
       }
 
+      const PERSISTENT_STORE = resolvePersistentStore();
+
       const StorageBridge = {
-        mode: "localStorage",
+        mode: PERSISTENT_STORE.label,
+        localMode: PERSISTENT_STORE.label,
         ready: false,
         cache: null,
         firebase: null,
+        hasValidConfig(config) {
+          return !!(config && typeof config === "object" && config.apiKey && config.projectId);
+        },
+        enterLocalMode(reason) {
+          this.firebase = null;
+          this.mode = this.localMode;
+          if (reason) {
+            console.warn("Remote sync disabled, continuing locally.", reason);
+          }
+        },
+        disableRemoteChannel(channel, reason) {
+          if (!this.firebase || !this.firebase[channel]) return;
+          this.firebase[channel] = null;
+          console.warn(channel + " sync disabled, keeping any remaining save channel alive.", reason);
+          if (!this.firebase.firestoreDoc && !this.firebase.realtimeRef) {
+            this.enterLocalMode(reason);
+          }
+        },
         async init() {
           this.cache = this.readLocal();
           const config = window.__DISGRACE_FIREBASE_CONFIG;
-          if (!config) {
+          if (!this.hasValidConfig(config)) {
             this.ready = true;
             return this.cache;
           }
@@ -1598,34 +1685,62 @@
             }
 
             const auth = window.firebase.auth();
-            await auth.signInAnonymously();
+            await withTimeout(auth.signInAnonymously(), FIREBASE_SYNC_TIMEOUT, "Firebase auth");
             const user = auth.currentUser || { uid: "anonymous" };
-            const firestore = window.firebase.firestore();
-            const database = window.firebase.database();
+
+            let firestoreDoc = null;
+            let realtimeRef = null;
+
+            try {
+              const firestore = window.firebase.firestore();
+              firestoreDoc = firestore.collection("disgraceSaves").doc(user.uid);
+            } catch (error) {
+              console.warn("Firestore unavailable, using any remaining save channel.", error);
+            }
+
+            try {
+              const database = window.firebase.database();
+              realtimeRef = database.ref("disgraceSaves/" + user.uid);
+            } catch (error) {
+              console.warn("Realtime Database unavailable, using any remaining save channel.", error);
+            }
+
+            if (!firestoreDoc && !realtimeRef) {
+              throw new Error("No Firebase save service is available for sync.");
+            }
+
             this.firebase = {
               uid: user.uid,
-              firestoreDoc: firestore.collection("disgraceSaves").doc(user.uid),
-              realtimeRef: database.ref("disgraceSaves/" + user.uid),
+              firestoreDoc,
+              realtimeRef,
             };
 
-            const [firestoreSnap, realtimeSnap] = await Promise.allSettled([
-              this.firebase.firestoreDoc.get(),
-              this.firebase.realtimeRef.get(),
-            ]);
+            const readJobs = [];
+            if (this.firebase.firestoreDoc) {
+              readJobs.push(withTimeout(this.firebase.firestoreDoc.get(), FIREBASE_SYNC_TIMEOUT, "Firestore read"));
+            } else {
+              readJobs.push(Promise.resolve(null));
+            }
+            if (this.firebase.realtimeRef) {
+              readJobs.push(withTimeout(this.firebase.realtimeRef.get(), FIREBASE_SYNC_TIMEOUT, "Realtime Database read"));
+            } else {
+              readJobs.push(Promise.resolve(null));
+            }
+
+            const [firestoreSnap, realtimeSnap] = await Promise.allSettled(readJobs);
 
             const remote = {};
-            if (firestoreSnap.status === "fulfilled" && firestoreSnap.value.exists) {
+            if (firestoreSnap.status === "fulfilled" && firestoreSnap.value && firestoreSnap.value.exists) {
               Object.assign(remote, firestoreSnap.value.data());
             }
-            if (realtimeSnap.status === "fulfilled" && realtimeSnap.value.exists()) {
+            if (realtimeSnap.status === "fulfilled" && realtimeSnap.value && realtimeSnap.value.exists()) {
               Object.assign(remote, realtimeSnap.value.val());
             }
 
             this.cache = Object.assign({}, this.cache || {}, remote || {});
-            this.mode = "Firebase + localStorage";
+            this.mode = "Firebase + " + this.localMode;
           } catch (error) {
-            console.warn("Firebase unavailable, continuing locally.", error);
-            this.mode = "localStorage";
+            this.enterLocalMode(error);
           }
 
           this.ready = true;
@@ -1633,30 +1748,45 @@
         },
         readLocal() {
           try {
-            const raw = localStorage.getItem(SAVE_KEY);
+            const raw = PERSISTENT_STORE.store.getItem(SAVE_KEY);
             return raw ? JSON.parse(raw) : {};
           } catch (error) {
-            console.warn("localStorage read failed", error);
+            console.warn(this.localMode + " read failed", error);
             return {};
           }
         },
         async save(payload) {
           this.cache = Object.assign({}, this.cache || {}, payload || {});
           try {
-            localStorage.setItem(SAVE_KEY, JSON.stringify(this.cache));
+            PERSISTENT_STORE.store.setItem(SAVE_KEY, JSON.stringify(this.cache));
           } catch (error) {
-            console.warn("localStorage save failed", error);
+            console.warn(this.localMode + " save failed", error);
           }
 
           if (!this.firebase) return;
 
           try {
-            await Promise.allSettled([
-              this.firebase.firestoreDoc.set(this.cache, { merge: true }),
-              this.firebase.realtimeRef.update(this.cache),
-            ]);
+            const writes = [];
+            if (this.firebase.firestoreDoc) {
+              writes.push({
+                channel: "firestoreDoc",
+                promise: withTimeout(this.firebase.firestoreDoc.set(this.cache, { merge: true }), FIREBASE_SYNC_TIMEOUT, "Firestore write"),
+              });
+            }
+            if (this.firebase.realtimeRef) {
+              writes.push({
+                channel: "realtimeRef",
+                promise: withTimeout(this.firebase.realtimeRef.update(this.cache), FIREBASE_SYNC_TIMEOUT, "Realtime Database write"),
+              });
+            }
+            const results = await Promise.allSettled(writes.map((entry) => entry.promise));
+            results.forEach((result, index) => {
+              if (result.status === "rejected") {
+                this.disableRemoteChannel(writes[index].channel, result.reason);
+              }
+            });
           } catch (error) {
-            console.warn("Remote save failed", error);
+            this.enterLocalMode(error);
           }
         },
       };
