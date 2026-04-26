@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no" />
   <meta name="theme-color" content="#050507" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-title" content="Disgrace" />
@@ -59,6 +59,7 @@
       position: relative;
       user-select: none;
       overscroll-behavior: none;
+      -webkit-touch-callout: none;
     }
 
     canvas {
@@ -68,6 +69,7 @@
       height: 100%;
       display: block;
       background: transparent;
+      touch-action: none;
     }
 
     #hud,
@@ -262,6 +264,7 @@
         rgba(10, 9, 15, 0.28);
       backdrop-filter: blur(10px);
       box-shadow: inset 0 0 30px rgba(255, 255, 255, 0.03);
+      z-index: 3;
     }
 
     #moveStick {
@@ -286,6 +289,7 @@
       border: 1px dashed rgba(255, 160, 160, 0.14);
       background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0.01));
       backdrop-filter: blur(8px);
+      z-index: 1;
     }
 
     #lookPadLabel {
@@ -307,6 +311,7 @@
       gap: 10px;
       align-content: end;
       width: 160px;
+      z-index: 4;
     }
 
     .touchButton {
@@ -602,6 +607,8 @@
         radial-gradient(circle at center, rgba(80, 0, 0, 0.25), transparent 32%),
         rgba(3, 3, 6, 0.84);
       pointer-events: auto;
+      overflow: auto;
+      -webkit-overflow-scrolling: touch;
     }
 
     #menu.hidden {
@@ -615,6 +622,9 @@
       background:
         linear-gradient(135deg, rgba(22, 18, 18, 0.96), rgba(8, 8, 12, 0.96));
       box-shadow: 0 30px 90px rgba(0, 0, 0, 0.45);
+      max-height: calc(100dvh - 48px);
+      overflow: auto;
+      -webkit-overflow-scrolling: touch;
     }
 
     h1 {
@@ -823,6 +833,7 @@
     body[data-screen="mobile"] #hud {
       grid-template-columns: 1fr;
       grid-template-rows: auto auto auto auto;
+      align-content: start;
     }
 
     body[data-screen="mobile"] canvas,
@@ -876,14 +887,144 @@
       display: block;
     }
 
+    body[data-screen="mobile"] #movePad {
+      left: max(14px, calc(var(--safe-left) + 10px));
+      bottom: max(18px, calc(var(--safe-bottom) + 12px));
+      width: min(36vw, 150px);
+      height: min(36vw, 150px);
+      min-width: 122px;
+      min-height: 122px;
+    }
+
+    body[data-screen="mobile"] #moveStick {
+      width: 46px;
+      height: 46px;
+    }
+
     body[data-screen="mobile"] #mobileButtons {
-      bottom: max(22px, calc(var(--safe-bottom) + 18px));
+      right: max(10px, calc(var(--safe-right) + 8px));
+      bottom: max(12px, calc(var(--safe-bottom) + 8px));
+      grid-template-columns: repeat(2, minmax(0, 68px));
+      gap: 8px;
+      width: 144px;
+    }
+
+    body[data-screen="mobile"] .touchButton {
+      min-height: 46px;
+      padding: 8px 6px;
+      font-size: 10px;
+      letter-spacing: 0.06em;
+    }
+
+    body[data-screen="mobile"] .touchButton.primary {
+      min-height: 52px;
     }
 
     body[data-screen="mobile"] #lookPad {
-      right: max(12px, calc(var(--safe-right) + 8px));
-      width: min(42vw, 210px);
-      height: min(28vh, 220px);
+      top: calc(88px + var(--safe-top));
+      right: 0;
+      bottom: calc(116px + var(--safe-bottom));
+      width: min(58vw, 360px);
+      height: auto;
+      border-color: transparent;
+      background: transparent;
+      backdrop-filter: none;
+    }
+
+    body[data-screen="mobile"] #lookPadLabel {
+      display: none;
+    }
+
+    body[data-screen="mobile"].run-active #hud {
+      padding: calc(8px + var(--safe-top)) calc(8px + var(--safe-right)) 0 calc(8px + var(--safe-left));
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-rows: auto 1fr auto;
+    }
+
+    body[data-screen="mobile"].run-active #statusPanel {
+      width: min(45vw, 190px);
+      padding: 8px 9px;
+      background: rgba(8, 8, 12, 0.52);
+    }
+
+    body[data-screen="mobile"].run-active #statusPanel .label,
+    body[data-screen="mobile"].run-active #statusPanel .valueLine:nth-of-type(n + 4),
+    body[data-screen="mobile"].run-active #statusPanel #compassWidget,
+    body[data-screen="mobile"].run-active #statusPanel #compassLabel,
+    body[data-screen="mobile"].run-active #statusPanel #viewToggleButton {
+      display: none;
+    }
+
+    body[data-screen="mobile"].run-active #statusPanel .valueRow {
+      margin-bottom: 7px;
+    }
+
+    body[data-screen="mobile"].run-active #statusPanel .valueLine {
+      font-size: 10px;
+      margin-bottom: 4px;
+    }
+
+    body[data-screen="mobile"].run-active #statusPanel .bar {
+      height: 8px;
+    }
+
+    body[data-screen="mobile"].run-active #boxPanel,
+    body[data-screen="mobile"].run-active #intelPanel {
+      display: none;
+    }
+
+    body[data-screen="mobile"].run-active #messagePanel {
+      position: absolute;
+      left: calc(8px + var(--safe-left));
+      right: calc(8px + var(--safe-right));
+      bottom: calc(168px + var(--safe-bottom));
+      width: auto;
+      margin: 0;
+      padding: 8px 10px;
+      font-size: 11px;
+      background: rgba(8, 8, 12, 0.46);
+    }
+
+    body[data-screen="mobile"] #menu {
+      align-items: start;
+      padding: calc(12px + var(--safe-top)) calc(12px + var(--safe-right)) calc(12px + var(--safe-bottom)) calc(12px + var(--safe-left));
+    }
+
+    body[data-screen="mobile"] #menuCard {
+      padding: 18px;
+      max-height: none;
+      overflow: visible;
+    }
+
+    body[data-screen="mobile"] h1 {
+      font-size: 44px;
+    }
+
+    body[data-screen="mobile"] .subtitle {
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      margin-bottom: 12px;
+    }
+
+    body[data-screen="mobile"] .menuText,
+    body[data-screen="mobile"] .menuBox {
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    body[data-screen="mobile"] .menuGrid {
+      gap: 8px;
+      margin: 14px 0 16px;
+    }
+
+    body[data-screen="mobile"] .buttonRow {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+
+    body[data-screen="mobile"] .buttonRow button {
+      width: 100%;
     }
 
     body[data-screen="mobile"] #crosshair {
@@ -2625,6 +2766,7 @@
 
         updateTouchUi() {
           const active = this.isMobileProfile() && this.running && !this.gameOver;
+          document.body.classList.toggle("run-active", active);
           HUD.touchControls.classList.toggle("active", active);
           HUD.mobileSprint.classList.toggle("active", !!this.keys["shift"]);
           HUD.mobileStabilize.classList.toggle("active", !!this.keys["f"]);
@@ -2703,8 +2845,8 @@
             this.touch.lookLastX = event.clientX;
             this.touch.lookLastY = event.clientY;
             if (!this.running || this.gameOver) return;
-            this.player.angle = wrapAngle(this.player.angle + dx * 0.012);
-            this.player.pitch = wrapAngle(this.player.pitch - dy * 0.01);
+            this.player.angle = wrapAngle(this.player.angle + dx * 0.0065);
+            this.player.pitch = wrapAngle(this.player.pitch - dy * 0.0055);
           });
           const clearLook = (event) => {
             if (this.touch.lookPointerId !== event.pointerId) return;
@@ -2714,29 +2856,18 @@
           HUD.lookPad.addEventListener("pointerup", clearLook);
           HUD.lookPad.addEventListener("pointercancel", clearLook);
 
-          const bindHold = (element, key) => {
+          const bindToggle = (element, key) => {
             element.addEventListener("pointerdown", (event) => {
               if (!this.isMobileProfile()) return;
               stop(event);
-              this.keys[key] = true;
-              element.classList.add("active");
+              this.keys[key] = !this.keys[key];
+              element.classList.toggle("active", !!this.keys[key]);
               this.updateTouchUi();
-            });
-            const release = (event) => {
-              stop(event);
-              this.keys[key] = false;
-              element.classList.remove("active");
-              this.updateTouchUi();
-            };
-            element.addEventListener("pointerup", release);
-            element.addEventListener("pointercancel", release);
-            element.addEventListener("pointerleave", (event) => {
-              if ((event.buttons || 0) === 0) release(event);
             });
           };
 
-          bindHold(HUD.mobileSprint, "shift");
-          bindHold(HUD.mobileStabilize, "f");
+          bindToggle(HUD.mobileSprint, "shift");
+          bindToggle(HUD.mobileStabilize, "f");
 
           HUD.mobileCapture.addEventListener("pointerdown", (event) => {
             if (!this.isMobileProfile()) return;
@@ -5070,7 +5201,7 @@
             this.gameOver
               ? this.endedBy + " Press Start Run to descend again."
               : this.isMobileProfile()
-                ? "Left pad moves. Right pad looks. Use the action buttons to sprint, stabilize, slide, shove, and capture. Follow the warning tones."
+                ? "Left pad moves. Drag the right side to look. Tap sprint or stabilize to toggle them. Use slide, shove, and capture when the line opens."
                 : "Mouse look. WASD move. Shift sprint. C slide. E capture. Space shove. F stabilize. Follow the warning tones."
           );
         }
