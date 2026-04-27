@@ -25,7 +25,7 @@ Recommended Firebase features:
 - Firestore
 - Realtime Database
 
-The game will try to use Firestore and Realtime Database when available. Players can create an optional account to save progress, but signing in is never required to play. Guest mode is a no-save session.
+The game will try to use Firestore and Realtime Database when available. Players can create an optional account to sync progress, but signing in is never required. If remote auth or sync fails, the game falls back to local-only guest mode without blocking gameplay.
 
 ## Deploying To GitHub Pages
 
