@@ -21,10 +21,11 @@ Remote save sync is optional. To enable it, edit [firebase-config.js](./firebase
 Recommended Firebase features:
 
 - Anonymous Authentication
+- Email/Password Authentication
 - Firestore
 - Realtime Database
 
-The game will try to use Firestore and Realtime Database when available. If one service fails, it keeps using the other when possible. If remote auth or sync fails, the game falls back to local-only mode without blocking gameplay.
+The game will try to use Firestore and Realtime Database when available. Players can create an optional account to sync progress, but signing in is never required. If remote auth or sync fails, the game falls back to local-only guest mode without blocking gameplay.
 
 ## Deploying To GitHub Pages
 

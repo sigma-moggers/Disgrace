@@ -4,8 +4,8 @@ window.__DISGRACE_FIREBASE_CONFIG = window.__DISGRACE_FIREBASE_CONFIG || null;
   Optional GitHub Pages / static hosting setup.
 
   Replace `null` with your Firebase web config object to enable
-  anonymous auth and remote save sync. If this file stays as-is,
-  the game runs entirely in local storage.
+  anonymous auth, optional email/password accounts, and remote save sync.
+  If this file stays as-is, the game runs entirely in local storage.
 
   Example:
 

@@ -340,18 +340,51 @@
     }
 
     #boxWidget {
+      --skin-a: rgba(255, 122, 122, 0.2);
+      --skin-b: rgba(255, 0, 0, 0.18);
+      --skin-c: rgba(20, 0, 0, 0.55);
+      --skin-line: rgba(255, 95, 95, 0.7);
+      --skin-glow: rgba(255, 40, 40, 0.14);
+      --skin-text: rgba(255, 210, 210, 0.7);
       width: var(--box-size);
       height: var(--box-size);
       margin: 10px auto 14px;
-      border: 2px solid rgba(255, 95, 95, 0.7);
+      border: 2px solid var(--skin-line);
       background:
-        radial-gradient(circle at 50% 35%, rgba(255, 122, 122, 0.2), transparent 34%),
-        linear-gradient(135deg, rgba(255, 0, 0, 0.18), rgba(20, 0, 0, 0.55));
+        radial-gradient(circle at 50% 35%, var(--skin-a), transparent 34%),
+        linear-gradient(135deg, var(--skin-b), var(--skin-c));
       box-shadow:
-        inset 0 0 30px rgba(255, 60, 60, 0.18),
-        0 0 30px rgba(255, 40, 40, 0.14);
+        inset 0 0 30px var(--skin-b),
+        0 0 30px var(--skin-glow);
       position: relative;
       transform-origin: center;
+    }
+
+    #boxWidget[data-skin="ashen"] {
+      --skin-a: rgba(220, 224, 230, 0.18);
+      --skin-b: rgba(118, 126, 138, 0.24);
+      --skin-c: rgba(22, 25, 31, 0.72);
+      --skin-line: rgba(220, 230, 240, 0.54);
+      --skin-glow: rgba(210, 226, 242, 0.12);
+      --skin-text: rgba(232, 238, 244, 0.76);
+    }
+
+    #boxWidget[data-skin="verdant"] {
+      --skin-a: rgba(135, 245, 176, 0.18);
+      --skin-b: rgba(35, 138, 80, 0.28);
+      --skin-c: rgba(4, 34, 24, 0.72);
+      --skin-line: rgba(132, 240, 174, 0.55);
+      --skin-glow: rgba(70, 220, 130, 0.14);
+      --skin-text: rgba(205, 255, 224, 0.76);
+    }
+
+    #boxWidget[data-skin="violet"] {
+      --skin-a: rgba(210, 160, 255, 0.18);
+      --skin-b: rgba(110, 60, 210, 0.3);
+      --skin-c: rgba(22, 12, 44, 0.74);
+      --skin-line: rgba(205, 160, 255, 0.56);
+      --skin-glow: rgba(170, 105, 255, 0.15);
+      --skin-text: rgba(238, 220, 255, 0.78);
     }
 
     #boxWidget::before,
@@ -372,7 +405,7 @@
       display: grid;
       place-items: center;
       font-size: 48px;
-      color: rgba(255, 210, 210, 0.7);
+      color: var(--skin-text);
       text-shadow: 0 0 12px rgba(255, 100, 100, 0.35);
     }
 
@@ -806,6 +839,175 @@
       min-width: 148px;
     }
 
+    #accountPanel {
+      margin-top: 14px;
+      padding: 14px;
+      border: 1px solid rgba(255, 150, 150, 0.16);
+      background: rgba(255, 255, 255, 0.035);
+    }
+
+    #accountTitle {
+      font-size: 12px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: #f3d7d7;
+      margin-bottom: 8px;
+    }
+
+    #accountStatus {
+      color: #d8c7c1;
+      font-size: 13px;
+      line-height: 1.45;
+      margin-bottom: 10px;
+    }
+
+    .accountGrid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .accountInput {
+      width: 100%;
+      min-width: 0;
+      border: 1px solid rgba(255, 130, 130, 0.28);
+      background: rgba(5, 5, 9, 0.62);
+      color: #fff2f2;
+      padding: 12px;
+      font: inherit;
+      font-size: 14px;
+    }
+
+    #accountActions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    #accountActions button {
+      padding: 11px 14px;
+      font-size: 12px;
+      letter-spacing: 0.12em;
+    }
+
+    #walletRow {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      margin-top: 12px;
+      padding-top: 10px;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      color: #f4ded8;
+      font-size: 13px;
+    }
+
+    #skinShop {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .skinButton {
+      min-width: 0;
+      padding: 10px;
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-align: left;
+      background: rgba(12, 10, 16, 0.54);
+      border-color: rgba(255, 130, 130, 0.24);
+    }
+
+    .skinButton.active {
+      border-color: rgba(255, 220, 170, 0.66);
+      box-shadow: 0 0 18px rgba(255, 190, 120, 0.18);
+    }
+
+    .drawerPanel {
+      display: none;
+      margin-top: 14px;
+      padding: 14px;
+      border: 1px solid rgba(255, 150, 150, 0.16);
+      background: rgba(255, 255, 255, 0.035);
+    }
+
+    .drawerPanel.open {
+      display: block;
+    }
+
+    .drawerTitle {
+      font-size: 12px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: #f3d7d7;
+      margin-bottom: 10px;
+    }
+
+    .settingsGrid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .settingRow {
+      display: grid;
+      gap: 6px;
+      color: #d8c7c1;
+      font-size: 13px;
+      line-height: 1.35;
+    }
+
+    .settingRow input[type="range"],
+    .settingRow select {
+      width: 100%;
+    }
+
+    .settingRow select {
+      border: 1px solid rgba(255, 130, 130, 0.28);
+      background: rgba(5, 5, 9, 0.62);
+      color: #fff2f2;
+      padding: 10px;
+      font: inherit;
+    }
+
+    .settingCheck {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    #tutorialPanel {
+      margin-top: 12px;
+    }
+
+    #tutorialText {
+      color: #d8c7c1;
+      line-height: 1.55;
+      font-size: 13px;
+      min-height: 64px;
+    }
+
+    #tutorialProgress {
+      color: var(--muted);
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin: 8px 0 10px;
+    }
+
+    #tutorialActions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    #tutorialActions button {
+      padding: 10px 12px;
+      font-size: 11px;
+      letter-spacing: 0.1em;
+    }
+
     body[data-screen="tablet"] {
       --hud-pad: 16px;
       --hud-gap: 10px;
@@ -942,20 +1144,23 @@
     }
 
     body[data-screen="mobile"].run-active #statusPanel {
-      width: min(45vw, 190px);
+      width: min(64vw, 260px);
       padding: 8px 9px;
       background: rgba(8, 8, 12, 0.52);
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 62px;
+      column-gap: 9px;
+      align-items: start;
     }
 
     body[data-screen="mobile"].run-active #statusPanel .label,
     body[data-screen="mobile"].run-active #statusPanel .valueLine:nth-of-type(n + 4),
-    body[data-screen="mobile"].run-active #statusPanel #compassWidget,
-    body[data-screen="mobile"].run-active #statusPanel #compassLabel,
     body[data-screen="mobile"].run-active #statusPanel #viewToggleButton {
       display: none;
     }
 
     body[data-screen="mobile"].run-active #statusPanel .valueRow {
+      grid-column: 1;
       margin-bottom: 7px;
     }
 
@@ -966,6 +1171,40 @@
 
     body[data-screen="mobile"].run-active #statusPanel .bar {
       height: 8px;
+    }
+
+    body[data-screen="mobile"].run-active #compassWidget {
+      grid-column: 2;
+      grid-row: 1 / span 3;
+      width: 52px;
+      height: 52px;
+      margin: 0 auto 4px;
+    }
+
+    body[data-screen="mobile"].run-active #compassWidget::before {
+      top: 6px;
+      height: calc(100% - 12px);
+    }
+
+    body[data-screen="mobile"].run-active #compassWidget::after {
+      left: 6px;
+      width: calc(100% - 12px);
+    }
+
+    body[data-screen="mobile"].run-active #compassNeedle {
+      width: 3px;
+      height: 21px;
+    }
+
+    body[data-screen="mobile"].run-active #compassLabel {
+      grid-column: 2;
+      grid-row: 3;
+      align-self: end;
+      min-height: 0;
+      font-size: 9px;
+      line-height: 1.12;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     body[data-screen="mobile"].run-active #boxPanel,
@@ -1007,9 +1246,48 @@
     }
 
     body[data-screen="mobile"] .menuText,
-    body[data-screen="mobile"] .menuBox {
+    body[data-screen="mobile"] .menuBox,
+    body[data-screen="mobile"] #accountStatus {
       font-size: 12px;
       line-height: 1.45;
+    }
+
+    body[data-screen="mobile"] .accountGrid {
+      grid-template-columns: 1fr;
+      gap: 8px;
+    }
+
+    body[data-screen="mobile"] #accountActions {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 8px;
+    }
+
+    body[data-screen="mobile"] #skinShop {
+      grid-template-columns: 1fr;
+    }
+
+    body[data-screen="mobile"] .settingsGrid {
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+
+    body.compact-hud #intelPanel,
+    body.compact-hud #boxPanel {
+      display: none;
+    }
+
+    body.compact-hud #messagePanel {
+      background: rgba(8, 8, 12, 0.5);
+    }
+
+    body.reduced-effects #glitchOverlay,
+    body.reduced-effects #vignette {
+      opacity: 0.35 !important;
+    }
+
+    body.reduced-effects canvas {
+      filter: none !important;
     }
 
     body[data-screen="mobile"] .menuGrid {
@@ -1195,7 +1473,7 @@
 
   <div id="menu">
       <div id="menuCard">
-        <div class="subtitle">Containment descent / psychological horror prototype</div>
+        <div class="subtitle">Containment descent</div>
         <h1>Disgrace</h1>
         <div class="menuText">
           You hunt rogue entities to protect humanity because they were not always dangerous. At first they were harmless remainders, small pieces of reality that did not fully disappear, repeating quiet, meaningless actions without awareness.
@@ -1212,12 +1490,75 @@
             If the box fails, escapes return worse than before. You are not just hunting entities. You are trying to stop something spreading, something learning, before there is nothing left to contain and nothing left to protect.
           </div>
           <div class="menuBox">
-            Firebase is optional. If you add your web config to `firebase-config.js`, the game attempts anonymous auth and remote save sync. If any remote step fails, it silently falls back to local storage for the session.
+            Accounts are optional. Sign in to sync progress across devices, or keep playing as a guest with progress saved on this device.
           </div>
         </div>
         <div class="buttonRow">
           <button id="startButton">Start Run</button>
+          <button id="settingsButton" type="button">Settings</button>
           <button id="fullscreenButton" type="button">Fullscreen</button>
+        </div>
+        <div id="settingsPanel" class="drawerPanel">
+          <div class="drawerTitle">Settings</div>
+          <div class="settingsGrid">
+            <label class="settingRow">
+              Look sensitivity
+              <input id="lookSensitivity" type="range" min="50" max="160" value="100" />
+            </label>
+            <label class="settingRow">
+              Audio volume
+              <input id="audioVolume" type="range" min="0" max="100" value="100" />
+            </label>
+            <label class="settingRow">
+              Default camera
+              <select id="defaultCamera">
+                <option value="first">First person</option>
+                <option value="third">Third person</option>
+              </select>
+            </label>
+            <label class="settingRow settingCheck">
+              <input id="compactHudSetting" type="checkbox" />
+              Compact HUD
+            </label>
+            <label class="settingRow settingCheck">
+              <input id="reducedEffectsSetting" type="checkbox" />
+              Reduced effects
+            </label>
+            <label class="settingRow settingCheck">
+              <input id="tutorialHintsSetting" type="checkbox" checked />
+              Tutorial hints
+            </label>
+          </div>
+          <button id="tutorialButton" type="button">Open Tutorial</button>
+          <div id="tutorialPanel" class="drawerPanel">
+            <div class="drawerTitle">Tutorial</div>
+            <div id="tutorialText"></div>
+            <div id="tutorialProgress"></div>
+            <div id="tutorialActions">
+              <button id="tutorialPrev" type="button">Back</button>
+              <button id="tutorialNext" type="button">Next</button>
+              <button id="tutorialPractice" type="button">Practice Tip</button>
+            </div>
+          </div>
+        </div>
+        <div id="accountPanel">
+          <div id="accountTitle">Account</div>
+          <div id="accountStatus">Guest play is active. Your progress saves on this device.</div>
+          <div class="accountGrid">
+            <input id="accountEmail" class="accountInput" type="email" inputmode="email" autocomplete="email" placeholder="Email" />
+            <input id="accountPassword" class="accountInput" type="password" autocomplete="current-password" placeholder="Password" />
+          </div>
+          <div id="accountActions">
+            <button id="accountSignIn" type="button">Sign In</button>
+            <button id="accountCreate" type="button">Create Account</button>
+            <button id="accountGuest" type="button">Play As Guest</button>
+            <button id="accountSignOut" type="button">Sign Out</button>
+          </div>
+          <div id="walletRow">
+            <span>Currency</span>
+            <strong id="currencyValue">0 shards</strong>
+          </div>
+          <div id="skinShop"></div>
         </div>
         <div id="browserPrompt" class="panel">
           <div id="browserPromptTitle">Browser Recommended</div>
@@ -1239,7 +1580,7 @@
       const FOV = Math.PI / 1.55;
       const WORLD_SIZE = 19;
       const ENTITY_COUNT = 10;
-      const MAX_CAPTURE_RANGE = 6.4;
+      const MAX_CAPTURE_RANGE = 3;
       const PLAYER_RADIUS = 0.2;
       const SAVE_KEY = "disgrace-save-v1";
       const LOOK_PITCH_SCALE = 0.34;
@@ -1247,6 +1588,8 @@
       const SLIDE_DURATION = 0.9;
       const FIREBASE_SCRIPT_TIMEOUT = 5000;
       const FIREBASE_SYNC_TIMEOUT = 3500;
+      const CAPTURE_REWARD = 12;
+      const RUN_COMPLETION_REWARD = 45;
       const SLIDE_CAMERA_DROP = 0.2;
       const SLIDE_ENTRY_SPEED = 5.6;
       const SLIDE_EXIT_SPEED = 3.35;
@@ -1336,6 +1679,13 @@
           detail: "Teleports between prepared anchors every 30 seconds. Read the next jump and intercept the pattern before it rehearses a safer route.",
           lore: "Relic suggests the worst possibility: a remainder can keep a pattern, improve it, and act like it knows exactly why the pattern works.",
         },
+      ];
+
+      const SKIN_LIBRARY = [
+        { id: "classic", name: "Classic", cost: 0, glyph: "▣" },
+        { id: "ashen", name: "Ashen", cost: 60, glyph: "◇" },
+        { id: "verdant", name: "Verdant", cost: 90, glyph: "✥" },
+        { id: "violet", name: "Violet", cost: 130, glyph: "◆" },
       ];
 
       function entitySeen(game, id) {
@@ -1534,6 +1884,21 @@
         mobileShove: document.getElementById("mobileShove"),
         menu: document.getElementById("menu"),
         startButton: document.getElementById("startButton"),
+        settingsButton: document.getElementById("settingsButton"),
+        tutorialButton: document.getElementById("tutorialButton"),
+        settingsPanel: document.getElementById("settingsPanel"),
+        tutorialPanel: document.getElementById("tutorialPanel"),
+        tutorialText: document.getElementById("tutorialText"),
+        tutorialProgress: document.getElementById("tutorialProgress"),
+        tutorialPrev: document.getElementById("tutorialPrev"),
+        tutorialNext: document.getElementById("tutorialNext"),
+        tutorialPractice: document.getElementById("tutorialPractice"),
+        lookSensitivity: document.getElementById("lookSensitivity"),
+        audioVolume: document.getElementById("audioVolume"),
+        defaultCamera: document.getElementById("defaultCamera"),
+        compactHudSetting: document.getElementById("compactHudSetting"),
+        reducedEffectsSetting: document.getElementById("reducedEffectsSetting"),
+        tutorialHintsSetting: document.getElementById("tutorialHintsSetting"),
         fullscreenButton: document.getElementById("fullscreenButton"),
         viewToggleButton: document.getElementById("viewToggleButton"),
         browserPrompt: document.getElementById("browserPrompt"),
@@ -1541,6 +1906,15 @@
         openBrowserButton: document.getElementById("openBrowserButton"),
         copyLinkButton: document.getElementById("copyLinkButton"),
         shareLinkButton: document.getElementById("shareLinkButton"),
+        accountStatus: document.getElementById("accountStatus"),
+        accountEmail: document.getElementById("accountEmail"),
+        accountPassword: document.getElementById("accountPassword"),
+        accountSignIn: document.getElementById("accountSignIn"),
+        accountCreate: document.getElementById("accountCreate"),
+        accountGuest: document.getElementById("accountGuest"),
+        accountSignOut: document.getElementById("accountSignOut"),
+        currencyValue: document.getElementById("currencyValue"),
+        skinShop: document.getElementById("skinShop"),
         devCheatButton: document.getElementById("devCheatButton"),
         devCodeModal: document.getElementById("devCodeModal"),
         devCodeInput: document.getElementById("devCodeInput"),
@@ -1778,6 +2152,20 @@
         return guarded;
       }
 
+      function mergeSaveData(base, incoming) {
+        const merged = Object.assign({}, base || {}, incoming || {});
+        merged.bestCaptures = Math.max(base?.bestCaptures || 0, incoming?.bestCaptures || 0);
+        merged.totalRuns = Math.max(base?.totalRuns || 0, incoming?.totalRuns || 0);
+        for (const key of ["powersUnlocked", "seenEntities", "discoveredClues"]) {
+          merged[key] = Array.from(new Set([...(base?.[key] || []), ...(incoming?.[key] || [])]));
+        }
+        merged.currency = Math.max(base?.currency || 0, incoming?.currency || 0);
+        merged.ownedSkins = Array.from(new Set(["classic", ...(base?.ownedSkins || []), ...(incoming?.ownedSkins || [])]));
+        merged.equippedSkin = incoming?.equippedSkin || base?.equippedSkin || "classic";
+        merged.settings = Object.assign({}, base?.settings || {}, incoming?.settings || {});
+        return merged;
+      }
+
       const PERSISTENT_STORE = resolvePersistentStore();
 
       const StorageBridge = {
@@ -1786,8 +2174,19 @@
         ready: false,
         cache: null,
         firebase: null,
+        auth: null,
+        user: null,
+        accountMode: "guest",
         hasValidConfig(config) {
           return !!(config && typeof config === "object" && config.apiKey && config.projectId);
+        },
+        isConfigured() {
+          return this.hasValidConfig(window.__DISGRACE_FIREBASE_CONFIG);
+        },
+        accountLabel() {
+          if (this.accountMode === "account" && this.user?.email) return "Account: " + this.user.email;
+          if (this.firebase && this.user?.isAnonymous) return "Guest cloud sync";
+          return "Guest on this device";
         },
         enterLocalMode(reason) {
           this.firebase = null;
@@ -1804,81 +2203,99 @@
             this.enterLocalMode(reason);
           }
         },
-        async init() {
-          this.cache = this.readLocal();
+        async ensureFirebaseLoaded() {
           const config = window.__DISGRACE_FIREBASE_CONFIG;
           if (!this.hasValidConfig(config)) {
+            throw new Error("Online accounts are not configured. Guest play still works on this device.");
+          }
+
+          if (!window.firebase) {
+            await loadScript("https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js");
+            await loadScript("https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js");
+            await loadScript("https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js");
+            await loadScript("https://www.gstatic.com/firebasejs/10.12.5/firebase-database-compat.js");
+          }
+
+          if (!window.firebase.apps.length) {
+            window.firebase.initializeApp(config);
+          }
+
+          this.auth = window.firebase.auth();
+          return this.auth;
+        },
+        async setupRemoteForUser(user) {
+          if (!user || !user.uid) {
+            throw new Error("No account session is available.");
+          }
+          this.user = user || null;
+          let firestoreDoc = null;
+          let realtimeRef = null;
+
+          try {
+            const firestore = window.firebase.firestore();
+            firestoreDoc = firestore.collection("disgraceSaves").doc(user.uid);
+          } catch (error) {
+            console.warn("Firestore unavailable, using any remaining save channel.", error);
+          }
+
+          try {
+            const database = window.firebase.database();
+            realtimeRef = database.ref("disgraceSaves/" + user.uid);
+          } catch (error) {
+            console.warn("Realtime Database unavailable, using any remaining save channel.", error);
+          }
+
+          if (!firestoreDoc && !realtimeRef) {
+            throw new Error("No online save service is available.");
+          }
+
+          this.firebase = { uid: user.uid, firestoreDoc, realtimeRef };
+          await this.mergeRemoteSave();
+          this.accountMode = user.isAnonymous ? "guest" : "account";
+          this.mode = (user.isAnonymous ? "Guest cloud + " : "Account cloud + ") + this.localMode;
+          await this.save({
+            accountEmail: user.email || null,
+            lastAccountMode: this.accountMode,
+          });
+          return this.cache;
+        },
+        async mergeRemoteSave() {
+          if (!this.firebase) return this.cache;
+          const readJobs = [];
+          if (this.firebase.firestoreDoc) {
+            readJobs.push(withTimeout(this.firebase.firestoreDoc.get(), FIREBASE_SYNC_TIMEOUT, "Firestore read"));
+          } else {
+            readJobs.push(Promise.resolve(null));
+          }
+          if (this.firebase.realtimeRef) {
+            readJobs.push(withTimeout(this.firebase.realtimeRef.get(), FIREBASE_SYNC_TIMEOUT, "Realtime Database read"));
+          } else {
+            readJobs.push(Promise.resolve(null));
+          }
+
+          const [firestoreSnap, realtimeSnap] = await Promise.allSettled(readJobs);
+          const remote = {};
+          if (firestoreSnap.status === "fulfilled" && firestoreSnap.value && firestoreSnap.value.exists) {
+            Object.assign(remote, firestoreSnap.value.data());
+          }
+          if (realtimeSnap.status === "fulfilled" && realtimeSnap.value && realtimeSnap.value.exists()) {
+            Object.assign(remote, realtimeSnap.value.val());
+          }
+
+          this.cache = mergeSaveData(remote, this.cache);
+          return this.cache;
+        },
+        async init() {
+          this.cache = this.readLocal();
+          if (!this.isConfigured()) {
             this.ready = true;
             return this.cache;
           }
 
           try {
-            if (!window.firebase) {
-              await loadScript("https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js");
-              await loadScript("https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js");
-              await loadScript("https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js");
-              await loadScript("https://www.gstatic.com/firebasejs/10.12.5/firebase-database-compat.js");
-            }
-
-            if (!window.firebase.apps.length) {
-              window.firebase.initializeApp(config);
-            }
-
-            const auth = window.firebase.auth();
+            const auth = await this.ensureFirebaseLoaded();
             await withTimeout(auth.signInAnonymously(), FIREBASE_SYNC_TIMEOUT, "Firebase auth");
-            const user = auth.currentUser || { uid: "anonymous" };
-
-            let firestoreDoc = null;
-            let realtimeRef = null;
-
-            try {
-              const firestore = window.firebase.firestore();
-              firestoreDoc = firestore.collection("disgraceSaves").doc(user.uid);
-            } catch (error) {
-              console.warn("Firestore unavailable, using any remaining save channel.", error);
-            }
-
-            try {
-              const database = window.firebase.database();
-              realtimeRef = database.ref("disgraceSaves/" + user.uid);
-            } catch (error) {
-              console.warn("Realtime Database unavailable, using any remaining save channel.", error);
-            }
-
-            if (!firestoreDoc && !realtimeRef) {
-              throw new Error("No Firebase save service is available for sync.");
-            }
-
-            this.firebase = {
-              uid: user.uid,
-              firestoreDoc,
-              realtimeRef,
-            };
-
-            const readJobs = [];
-            if (this.firebase.firestoreDoc) {
-              readJobs.push(withTimeout(this.firebase.firestoreDoc.get(), FIREBASE_SYNC_TIMEOUT, "Firestore read"));
-            } else {
-              readJobs.push(Promise.resolve(null));
-            }
-            if (this.firebase.realtimeRef) {
-              readJobs.push(withTimeout(this.firebase.realtimeRef.get(), FIREBASE_SYNC_TIMEOUT, "Realtime Database read"));
-            } else {
-              readJobs.push(Promise.resolve(null));
-            }
-
-            const [firestoreSnap, realtimeSnap] = await Promise.allSettled(readJobs);
-
-            const remote = {};
-            if (firestoreSnap.status === "fulfilled" && firestoreSnap.value && firestoreSnap.value.exists) {
-              Object.assign(remote, firestoreSnap.value.data());
-            }
-            if (realtimeSnap.status === "fulfilled" && realtimeSnap.value && realtimeSnap.value.exists()) {
-              Object.assign(remote, realtimeSnap.value.val());
-            }
-
-            this.cache = Object.assign({}, this.cache || {}, remote || {});
-            this.mode = "Firebase + " + this.localMode;
+            await this.setupRemoteForUser(auth.currentUser || { uid: "anonymous", isAnonymous: true });
           } catch (error) {
             this.enterLocalMode(error);
           }
@@ -1929,6 +2346,42 @@
             this.enterLocalMode(error);
           }
         },
+        async signIn(email, password) {
+          const auth = await this.ensureFirebaseLoaded();
+          const credential = await withTimeout(
+            auth.signInWithEmailAndPassword(email, password),
+            FIREBASE_SYNC_TIMEOUT,
+            "Account sign in"
+          );
+          return this.setupRemoteForUser(credential.user || auth.currentUser);
+        },
+        async createAccount(email, password) {
+          const auth = await this.ensureFirebaseLoaded();
+          const credential = await withTimeout(
+            auth.createUserWithEmailAndPassword(email, password),
+            FIREBASE_SYNC_TIMEOUT,
+            "Account creation"
+          );
+          return this.setupRemoteForUser(credential.user || auth.currentUser);
+        },
+        async useGuest() {
+          this.accountMode = "guest";
+          if (!this.isConfigured()) {
+            this.enterLocalMode();
+            return this.cache;
+          }
+          try {
+            const auth = await this.ensureFirebaseLoaded();
+            if (!auth.currentUser || !auth.currentUser.isAnonymous) {
+              await withTimeout(auth.signOut(), FIREBASE_SYNC_TIMEOUT, "Account sign out");
+              await withTimeout(auth.signInAnonymously(), FIREBASE_SYNC_TIMEOUT, "Guest sign in");
+            }
+            return this.setupRemoteForUser(auth.currentUser || { uid: "anonymous", isAnonymous: true });
+          } catch (error) {
+            this.enterLocalMode(error);
+            return this.cache;
+          }
+        },
       };
 
       class AudioSystem {
@@ -1951,6 +2404,14 @@
           this.lastWarningAt = -999;
           this.lastWarningEntityId = "";
           this.started = false;
+          this.volume = 1;
+        }
+
+        setVolume(value) {
+          this.volume = clamp(Number(value), 0, 1);
+          if (this.master && this.ctx) {
+            this.master.gain.setTargetAtTime(0.22 * this.volume, this.ctx.currentTime, 0.03);
+          }
         }
 
         async start() {
@@ -1968,7 +2429,7 @@
           this.distortion = this.ctx.createWaveShaper();
           this.filter.type = "lowpass";
           this.filter.frequency.value = 1800;
-          this.master.gain.value = 0.22;
+          this.master.gain.value = 0.22 * this.volume;
           this.distortion.curve = this.makeDistortionCurve(32);
           this.master.connect(this.distortion);
           this.distortion.connect(this.filter);
@@ -2162,20 +2623,21 @@
             : 1;
           const overload = game.box.overload ? 1 : 0;
           const distortion = clamp((100 - game.box.stability) / 100 + overload * 0.5, 0, 1);
+          const effectsScale = game.getSetting("reducedEffects") ? 0.45 : 1;
 
-          this.master.gain.linearRampToValueAtTime((0.16 + stress * 0.12) * silence, now + 0.08);
+          this.master.gain.linearRampToValueAtTime((0.16 + stress * 0.12) * silence * this.volume, now + 0.08);
           this.filter.frequency.linearRampToValueAtTime(lerp(2200, 640, stress), now + 0.08);
           this.drone.frequency.linearRampToValueAtTime(50 + stress * 18 + nocturneNear * 26, now + 0.08);
-          this.droneGain.gain.linearRampToValueAtTime(0.03 + stress * 0.07 + nocturneNear * 0.05, now + 0.08);
+          this.droneGain.gain.linearRampToValueAtTime((0.03 + stress * 0.07 + nocturneNear * 0.05) * effectsScale, now + 0.08);
           this.whisper.frequency.linearRampToValueAtTime(280 + nocturneNear * 80 + Math.sin(game.time * 0.9) * 14, now + 0.08);
-          this.whisperGain.gain.linearRampToValueAtTime(0.005 + nocturneNear * 0.03, now + 0.08);
+          this.whisperGain.gain.linearRampToValueAtTime((0.005 + nocturneNear * 0.03) * effectsScale, now + 0.08);
           this.pulse.frequency.linearRampToValueAtTime(118 + lamentNear * 18 + stress * 44, now + 0.08);
-          this.pulseGain.gain.linearRampToValueAtTime(0.01 + lamentNear * 0.024 + stress * 0.03, now + 0.08);
+          this.pulseGain.gain.linearRampToValueAtTime((0.01 + lamentNear * 0.024 + stress * 0.03) * effectsScale, now + 0.08);
           this.heartbeat.frequency.linearRampToValueAtTime(62 + panic * 22 + (game.player.sprinting ? 8 : 0), now + 0.08);
-          this.heartbeatGain.gain.linearRampToValueAtTime((0.0015 + panic * 0.018) * silence, now + 0.08);
-          this.noiseGain.gain.linearRampToValueAtTime((0.004 + distortion * 0.022) * silence, now + 0.08);
+          this.heartbeatGain.gain.linearRampToValueAtTime((0.0015 + panic * 0.018) * silence * effectsScale, now + 0.08);
+          this.noiseGain.gain.linearRampToValueAtTime((0.004 + distortion * 0.022) * silence * effectsScale, now + 0.08);
           this.noiseFilter.frequency.linearRampToValueAtTime(680 + overload * 520 + stress * 240 + panic * 120, now + 0.08);
-          this.distortion.curve = this.makeDistortionCurve(24 + distortion * 260);
+          this.distortion.curve = this.makeDistortionCurve(24 + distortion * 260 * effectsScale);
 
           const nearest = game.entities
             .filter((entity) => game.isEntityActive(entity))
@@ -2271,6 +2733,17 @@
             powersUnlocked: [],
             seenEntities: [],
             discoveredClues: [],
+            currency: 0,
+            ownedSkins: ["classic"],
+            equippedSkin: "classic",
+            settings: {
+              lookSensitivity: 100,
+              audioVolume: 100,
+              defaultCamera: "first",
+              compactHud: false,
+              reducedEffects: false,
+              tutorialHints: true,
+            },
           };
 
           this.entities = [];
@@ -2299,6 +2772,9 @@
           this.activeEntities = [];
           this.captureCandidate = null;
           this.lastHudRenderAt = -999;
+          this.settingsPanelOpen = false;
+          this.tutorialPanelOpen = false;
+          this.tutorialStep = 0;
           this.viewMode = "first";
           this.viewState = null;
           this.rays = [];
@@ -2329,13 +2805,40 @@
           });
           window.addEventListener("mousemove", (event) => {
             if (!this.mouseLocked || !this.running || this.gameOver) return;
-            this.player.angle = wrapAngle(this.player.angle + event.movementX * 0.0024);
-            this.player.pitch = wrapAngle(this.player.pitch - event.movementY * 0.002);
+            const sensitivity = this.getSetting("lookSensitivity") / 100;
+            this.player.angle = wrapAngle(this.player.angle + event.movementX * 0.0024 * sensitivity);
+            this.player.pitch = wrapAngle(this.player.pitch - event.movementY * 0.002 * sensitivity);
           });
 
           HUD.startButton.addEventListener("click", async () => {
             await this.start();
           });
+          HUD.settingsButton.addEventListener("click", () => {
+            this.toggleSettingsPanel();
+          });
+          HUD.tutorialButton.addEventListener("click", () => {
+            this.toggleTutorialPanel();
+          });
+          HUD.tutorialPrev.addEventListener("click", () => {
+            this.setTutorialStep(this.tutorialStep - 1);
+          });
+          HUD.tutorialNext.addEventListener("click", () => {
+            this.setTutorialStep(this.tutorialStep + 1);
+          });
+          HUD.tutorialPractice.addEventListener("click", () => {
+            this.applyTutorialPractice();
+          });
+          for (const input of [
+            HUD.lookSensitivity,
+            HUD.audioVolume,
+            HUD.defaultCamera,
+            HUD.compactHudSetting,
+            HUD.reducedEffectsSetting,
+            HUD.tutorialHintsSetting,
+          ]) {
+            input.addEventListener("input", () => this.saveSettingsFromUi());
+            input.addEventListener("change", () => this.saveSettingsFromUi());
+          }
           HUD.fullscreenButton.addEventListener("click", async () => {
             await this.toggleFullscreen();
           });
@@ -2384,27 +2887,273 @@
           HUD.shareLinkButton.addEventListener("click", async () => {
             await this.shareCurrentLink();
           });
+          HUD.accountSignIn.addEventListener("click", async () => {
+            await this.handleAccountAction("signIn");
+          });
+          HUD.accountCreate.addEventListener("click", async () => {
+            await this.handleAccountAction("create");
+          });
+          HUD.accountGuest.addEventListener("click", async () => {
+            await this.handleAccountAction("guest");
+          });
+          HUD.accountSignOut.addEventListener("click", async () => {
+            await this.handleAccountAction("guest");
+          });
           this.updateBrowserPrompt();
           this.setupTouchControls();
         }
 
         async boot() {
           const cached = await StorageBridge.init();
-          this.save = Object.assign({}, this.save, cached || {});
+          this.save = mergeSaveData(this.save, cached || {});
+          this.normalizeSettings();
           HUD.storageValue.textContent = StorageBridge.mode;
+          this.updateAccountUi();
+          this.syncSettingsUi();
+          this.applySettings();
+          this.renderSkinShop();
           this.resetRun();
           this.drawSplash();
+        }
+
+        normalizeSettings() {
+          const defaults = {
+            lookSensitivity: 100,
+            audioVolume: 100,
+            defaultCamera: "first",
+            compactHud: false,
+            reducedEffects: false,
+            tutorialHints: true,
+          };
+          this.save.settings = Object.assign({}, defaults, this.save.settings || {});
+          this.save.settings.lookSensitivity = clamp(Number(this.save.settings.lookSensitivity) || 100, 50, 160);
+          this.save.settings.audioVolume = clamp(Number(this.save.settings.audioVolume) || 100, 0, 100);
+          if (!["first", "third"].includes(this.save.settings.defaultCamera)) this.save.settings.defaultCamera = "first";
+          this.save.settings.compactHud = !!this.save.settings.compactHud;
+          this.save.settings.reducedEffects = !!this.save.settings.reducedEffects;
+          this.save.settings.tutorialHints = this.save.settings.tutorialHints !== false;
+        }
+
+        getSetting(key) {
+          this.normalizeSettings();
+          return this.save.settings[key];
+        }
+
+        syncSettingsUi() {
+          this.normalizeSettings();
+          HUD.lookSensitivity.value = String(this.save.settings.lookSensitivity);
+          HUD.audioVolume.value = String(this.save.settings.audioVolume);
+          HUD.defaultCamera.value = this.save.settings.defaultCamera;
+          HUD.compactHudSetting.checked = this.save.settings.compactHud;
+          HUD.reducedEffectsSetting.checked = this.save.settings.reducedEffects;
+          HUD.tutorialHintsSetting.checked = this.save.settings.tutorialHints;
+        }
+
+        saveSettingsFromUi() {
+          this.save.settings = {
+            lookSensitivity: Number(HUD.lookSensitivity.value),
+            audioVolume: Number(HUD.audioVolume.value),
+            defaultCamera: HUD.defaultCamera.value,
+            compactHud: HUD.compactHudSetting.checked,
+            reducedEffects: HUD.reducedEffectsSetting.checked,
+            tutorialHints: HUD.tutorialHintsSetting.checked,
+          };
+          this.normalizeSettings();
+          this.applySettings();
+          StorageBridge.save({ settings: this.save.settings });
+        }
+
+        applySettings() {
+          this.normalizeSettings();
+          document.body.classList.toggle("compact-hud", this.save.settings.compactHud);
+          document.body.classList.toggle("reduced-effects", this.save.settings.reducedEffects);
+          this.audio.setVolume(this.save.settings.audioVolume / 100);
+          this.lastHudRenderAt = -999;
+        }
+
+        toggleSettingsPanel() {
+          this.settingsPanelOpen = !this.settingsPanelOpen;
+          HUD.settingsPanel.classList.toggle("open", this.settingsPanelOpen);
+        }
+
+        toggleTutorialPanel() {
+          this.tutorialPanelOpen = !this.tutorialPanelOpen;
+          HUD.tutorialPanel.classList.toggle("open", this.tutorialPanelOpen);
+          if (this.tutorialPanelOpen) this.renderTutorialStep();
+        }
+
+        getTutorialSteps() {
+          return [
+            {
+              title: "Move",
+              text: "Move with WASD or the left mobile pad. Hold forward and turn your view; your movement follows where the camera points.",
+              tip: "Try walking in a slow circle while holding forward.",
+            },
+            {
+              title: "Find",
+              text: "Use the compass to point toward the nearest active anomaly. Warning tones become faster and louder when danger gets close.",
+              tip: "Follow the compass until the warning tone starts tightening.",
+            },
+            {
+              title: "Capture",
+              text: "You must be 3 meters or closer to capture. Put the crosshair over the entity's body, then press E or the Capture button.",
+              tip: "Close distance first. If the prompt is missing, you are too far away or not aiming at the body.",
+            },
+            {
+              title: "Survive",
+              text: "Sprint with Shift, slide with C, shove with Space, and stabilize the Red Box with F. Mobile uses the matching action buttons.",
+              tip: "Sprint only when you need space; stamina matters when the maze turns ugly.",
+            },
+            {
+              title: "Progress",
+              text: "Captures grant powers and shards. Shards buy Red Box skins in the account panel, and guest progress still saves on this device.",
+              tip: "A clean run earns more shards and keeps the box stable longer.",
+            },
+          ];
+        }
+
+        setTutorialStep(index) {
+          const steps = this.getTutorialSteps();
+          this.tutorialStep = (index + steps.length) % steps.length;
+          this.renderTutorialStep();
+        }
+
+        renderTutorialStep() {
+          const steps = this.getTutorialSteps();
+          const step = steps[this.tutorialStep] || steps[0];
+          HUD.tutorialText.innerHTML = "<strong>" + step.title + "</strong><br>" + step.text;
+          HUD.tutorialProgress.textContent = "Step " + (this.tutorialStep + 1) + " / " + steps.length;
+        }
+
+        applyTutorialPractice() {
+          const step = this.getTutorialSteps()[this.tutorialStep];
+          this.updateAccountUi(step.tip);
+        }
+
+        updateAccountUi(message = "") {
+          const configured = StorageBridge.isConfigured();
+          const label = StorageBridge.accountLabel();
+          const helper = configured
+            ? " Sign in to sync this save across devices, or keep playing as a guest."
+            : " Online accounts are not enabled yet. Guest play still saves here.";
+          HUD.accountStatus.textContent = message || (label + "." + helper);
+          HUD.accountSignIn.disabled = !configured;
+          HUD.accountCreate.disabled = !configured;
+          HUD.accountSignOut.disabled = StorageBridge.accountMode !== "account";
+        }
+
+        async handleAccountAction(action) {
+          const email = HUD.accountEmail.value.trim();
+          const password = HUD.accountPassword.value;
+          try {
+            if (action === "guest") {
+              await StorageBridge.useGuest();
+              this.save = mergeSaveData(this.save, StorageBridge.cache || {});
+              this.normalizeSettings();
+              this.syncSettingsUi();
+              this.applySettings();
+              HUD.accountPassword.value = "";
+              this.updateAccountUi("Guest play is active. Your progress still saves on this device.");
+              HUD.storageValue.textContent = StorageBridge.mode;
+              this.renderSkinShop();
+              return;
+            }
+
+            if (!email || !password) {
+              this.updateAccountUi("Enter an email and password, or keep playing as a guest.");
+              return;
+            }
+
+            this.updateAccountUi(action === "create" ? "Creating account..." : "Signing in...");
+            const cached = action === "create"
+              ? await StorageBridge.createAccount(email, password)
+              : await StorageBridge.signIn(email, password);
+            this.save = mergeSaveData(this.save, cached || {});
+            this.normalizeSettings();
+            this.syncSettingsUi();
+            this.applySettings();
+            HUD.accountPassword.value = "";
+            HUD.storageValue.textContent = StorageBridge.mode;
+            this.updateAccountUi("Signed in as " + (StorageBridge.user?.email || email) + ". This device save is linked.");
+            this.renderSkinShop();
+          } catch (error) {
+            const text = error?.message || "Account action failed.";
+            this.updateAccountUi(text + " Guest play is still available.");
+          }
+        }
+
+        getCurrency() {
+          return Math.max(0, Math.floor(this.save.currency || 0));
+        }
+
+        normalizeSkins() {
+          this.save.ownedSkins = Array.from(new Set(["classic", ...(this.save.ownedSkins || [])]));
+          if (!SKIN_LIBRARY.some((skin) => skin.id === this.save.equippedSkin)) {
+            this.save.equippedSkin = "classic";
+          }
+        }
+
+        renderSkinShop() {
+          this.normalizeSkins();
+          HUD.currencyValue.textContent = this.getCurrency() + " shards";
+          HUD.skinShop.innerHTML = "";
+          for (const skin of SKIN_LIBRARY) {
+            const owned = this.save.ownedSkins.includes(skin.id);
+            const equipped = this.save.equippedSkin === skin.id;
+            const button = document.createElement("button");
+            button.type = "button";
+            button.className = "skinButton" + (equipped ? " active" : "");
+            button.textContent = skin.name + " - " + (equipped ? "Equipped" : owned ? "Equip" : skin.cost + " shards");
+            button.addEventListener("click", () => this.selectSkin(skin.id));
+            HUD.skinShop.appendChild(button);
+          }
+          this.applyEquippedSkin();
+        }
+
+        selectSkin(id) {
+          this.normalizeSkins();
+          const skin = SKIN_LIBRARY.find((item) => item.id === id);
+          if (!skin) return;
+          const owned = this.save.ownedSkins.includes(id);
+          if (!owned) {
+            if (this.getCurrency() < skin.cost) {
+              this.updateAccountUi("Not enough shards for " + skin.name + ".");
+              return;
+            }
+            this.save.currency = this.getCurrency() - skin.cost;
+            this.save.ownedSkins = Array.from(new Set([...this.save.ownedSkins, id]));
+          }
+          this.save.equippedSkin = id;
+          StorageBridge.save({
+            currency: this.save.currency,
+            ownedSkins: this.save.ownedSkins,
+            equippedSkin: this.save.equippedSkin,
+          });
+          this.renderSkinShop();
+          this.updateAccountUi((owned ? "Equipped " : "Unlocked and equipped ") + skin.name + ".");
+        }
+
+        applyEquippedSkin() {
+          this.normalizeSkins();
+          const skin = SKIN_LIBRARY.find((item) => item.id === this.save.equippedSkin) || SKIN_LIBRARY[0];
+          HUD.boxWidget.dataset.skin = skin.id;
+          const glyph = document.getElementById("boxGlyph");
+          if (glyph) glyph.textContent = skin.glyph;
         }
 
         async start() {
           await this.enterFullscreen();
           HUD.menu.classList.add("hidden");
           await this.audio.start();
+          this.applySettings();
           this.resetRun();
+          this.viewMode = this.getSetting("defaultCamera");
           this.running = true;
           this.lockPointer();
           this.updateTouchUi();
-          this.message = "The containment field wakes with you.";
+          this.message = this.getSetting("tutorialHints")
+            ? "Use the compass to find the nearest anomaly. Capture only when the crosshair holds steady."
+            : "The containment field wakes with you.";
           this.messageTimer = 5;
           requestAnimationFrame((time) => this.frame(time));
         }
@@ -2845,8 +3594,9 @@
             this.touch.lookLastX = event.clientX;
             this.touch.lookLastY = event.clientY;
             if (!this.running || this.gameOver) return;
-            this.player.angle = wrapAngle(this.player.angle + dx * 0.0065);
-            this.player.pitch = wrapAngle(this.player.pitch - dy * 0.0055);
+            const sensitivity = this.getSetting("lookSensitivity") / 100;
+            this.player.angle = wrapAngle(this.player.angle + dx * 0.0065 * sensitivity);
+            this.player.pitch = wrapAngle(this.player.pitch - dy * 0.0055 * sensitivity);
           });
           const clearLook = (event) => {
             if (this.touch.lookPointerId !== event.pointerId) return;
@@ -3694,8 +4444,9 @@
             if (!this.isEntityActive(entity)) continue;
             const projection = this.projectEntity(entity, width, height, horizon, viewState);
             const hitbox = this.getEntityScreenHitbox(entity, projection);
+            const playerDist = distance(this.player, entity);
             const los = this.hasLineOfSight(viewState.x, viewState.y, entity.x, entity.y);
-            if (!los || projection.dist > 6) continue;
+            if (!los || playerDist > MAX_CAPTURE_RANGE) continue;
             if (Math.abs(projection.angle) > FOV / 2 + 0.22) continue;
 
             let allowed = true;
@@ -3720,7 +4471,7 @@
                 Math.abs(((hitbox.top + hitbox.bottom) / 2) - crosshairY) * 0.35;
               visible.push({
                 entity,
-                dist: distance(this.player, entity),
+                dist: playerDist,
                 angle: projection.angle,
                 crosshairError,
               });
@@ -3732,7 +4483,7 @@
         }
 
         findCaptureCandidate(viewState = this.viewState || this.getViewState()) {
-          if (this.visibleTarget && this.visibleTarget.dist <= MAX_CAPTURE_RANGE + this.getEntityCollisionRadius(this.visibleTarget.entity) * 1.3) {
+          if (this.visibleTarget && this.visibleTarget.dist <= MAX_CAPTURE_RANGE) {
             return this.visibleTarget;
           }
 
@@ -3747,8 +4498,7 @@
             if (!this.isEntityActive(entity)) continue;
             const projection = this.projectEntity(entity, width, height, horizon, viewState);
             const hitbox = this.getEntityScreenHitbox(entity, projection);
-            const captureReach = MAX_CAPTURE_RANGE + hitbox.radius * 1.55;
-            if (distance(this.player, entity) > captureReach + 0.2) continue;
+            if (distance(this.player, entity) > MAX_CAPTURE_RANGE) continue;
             if (!this.hasLineOfSight(viewState.x, viewState.y, entity.x, entity.y)) continue;
 
             let allowed = true;
@@ -3766,9 +4516,9 @@
             const horizontalError = Math.abs(projection.screenX - crosshairX);
             const verticalError = Math.abs(((hitbox.top + hitbox.bottom) / 2) - crosshairY);
             const withinWindow =
-              horizontalError <= hitbox.halfWidth + 78 &&
-              crosshairY >= hitbox.top - 54 &&
-              crosshairY <= hitbox.bottom + 52;
+              horizontalError <= hitbox.halfWidth &&
+              crosshairY >= hitbox.top &&
+              crosshairY <= hitbox.bottom;
             if (!withinWindow) continue;
 
             candidates.push({
@@ -3779,37 +4529,6 @@
             });
           }
 
-          if (!candidates.length) {
-            for (const entity of this.entities) {
-              if (!this.isEntityActive(entity)) continue;
-              if (!this.hasLineOfSight(viewState.x, viewState.y, entity.x, entity.y)) continue;
-
-              const dist = distance(this.player, entity);
-              const captureReach = MAX_CAPTURE_RANGE + this.getEntityCollisionRadius(entity) * 1.6;
-              if (dist > captureReach + 0.28) continue;
-
-              const angle = Math.abs(wrapAngle(Math.atan2(entity.x - viewState.x, entity.y - viewState.y) - viewState.angle));
-              let allowed = true;
-              if (entity.id === "silhouette") {
-                allowed = angle > 0.08 && angle < 0.78;
-              } else if (entity.id === "velour") {
-                allowed = angle < 0.36;
-              } else if (entity.id === "crescent") {
-                allowed = entity.visible;
-              } else {
-                allowed = angle < 0.28;
-              }
-              if (!allowed) continue;
-
-              candidates.push({
-                entity,
-                dist,
-                angle,
-                crosshairError: angle * 260 + dist * 16,
-              });
-            }
-          }
-
           candidates.sort((a, b) => a.crosshairError - b.crosshairError || a.dist - b.dist);
           return candidates[0] || null;
         }
@@ -3818,8 +4537,7 @@
           if (!this.running || this.gameOver) return;
           const candidate = this.captureCandidate || this.findCaptureCandidate();
           const target = candidate && candidate.entity;
-          const captureReach = target ? MAX_CAPTURE_RANGE + this.getEntityCollisionRadius(target) * 1.3 : MAX_CAPTURE_RANGE;
-          if (!target || candidate.dist > captureReach) {
+          if (!target || candidate.dist > MAX_CAPTURE_RANGE) {
             this.stats.missedCaptures += 1;
             this.noteMistake(0.24, "The box closes on nothing.");
             this.audio.pulseEvent(120, 0.18, 0.05, "square");
@@ -3860,7 +4578,8 @@
           target.escaped = false;
           this.stats.captures += 1;
           this.box.stability -= 8 + this.stats.captures * 1.45;
-          this.pushMessage(target.name + " is contained. Power granted: " + target.power + ".");
+          this.save.currency = this.getCurrency() + CAPTURE_REWARD;
+          this.pushMessage(target.name + " is contained. Power granted: " + target.power + ". +" + CAPTURE_REWARD + " shards.");
           this.audio.pulseEvent(480, 0.22, 0.09, "sine");
           this.flashTimer = 0.2;
           HUD.flashOverlay.style.opacity = "0.55";
@@ -3868,12 +4587,16 @@
             HUD.flashOverlay.style.opacity = "0";
           }, 90);
 
-          StorageBridge.save({
+          const progressPayload = {
             bestCaptures: Math.max(this.save.bestCaptures || 0, this.stats.captures),
             totalRuns: this.save.totalRuns || 0,
             powersUnlocked: Array.from(new Set([...(this.save.powersUnlocked || []), target.id])),
             seenEntities: Array.from(new Set([...(this.save.seenEntities || []), target.id])),
-          });
+            currency: this.save.currency,
+          };
+          this.save = Object.assign({}, this.save, progressPayload);
+          StorageBridge.save(progressPayload);
+          this.renderSkinShop();
           this.syncActiveEntities();
         }
 
@@ -4227,14 +4950,11 @@
 
         getEntityScreenHitbox(entity, projection) {
           const radius = this.getEntityCollisionRadius(entity);
-          const halfWidth = clamp(projection.spriteWidth * (0.18 + radius * 0.85), 14, projection.spriteWidth * 0.36);
-          const topInset = projection.spriteHeight * 0.12;
-          const bottomInset = projection.spriteHeight * 0.08;
           return {
             radius,
-            halfWidth,
-            top: projection.top + topInset,
-            bottom: projection.bottom - bottomInset,
+            halfWidth: projection.spriteWidth * 0.5,
+            top: projection.top,
+            bottom: projection.bottom,
           };
         }
 
@@ -5068,6 +5788,7 @@
         }
 
         renderHud() {
+          this.applyEquippedSkin();
           const contained = this.entities.filter((entity) => entity.captured).length;
           HUD.stabilityBar.style.width = this.box.stability.toFixed(1) + "%";
           HUD.staminaBar.style.width = ((this.player.stamina / PLAYER_MAX_STAMINA) * 100).toFixed(1) + "%";
@@ -5112,9 +5833,9 @@
           }
 
           const captureCandidate = this.captureCandidate;
-          if (captureCandidate && captureCandidate.dist <= MAX_CAPTURE_RANGE + this.getEntityCollisionRadius(captureCandidate.entity) * 0.95) {
+          if (captureCandidate && captureCandidate.dist <= MAX_CAPTURE_RANGE) {
             const entity = captureCandidate.entity;
-            HUD.capturePrompt.textContent = "Press E to bind " + entity.name + " into the Red Box";
+            HUD.capturePrompt.textContent = "Press E to bind " + entity.name + " into the Red Box (" + captureCandidate.dist.toFixed(1) + "m)";
             HUD.capturePrompt.classList.add("visible");
           } else {
             HUD.capturePrompt.classList.remove("visible");
@@ -5232,6 +5953,7 @@
 
         persistRun(success) {
           const captured = this.stats.captures;
+          const reward = success ? RUN_COMPLETION_REWARD : Math.floor(captured * 4);
           const payload = {
             bestCaptures: Math.max(this.save.bestCaptures || 0, captured),
             totalRuns: (this.save.totalRuns || 0) + 1,
@@ -5247,11 +5969,15 @@
               ...(this.save.discoveredClues || []),
               ...this.discoveredClues,
             ])),
+            currency: this.getCurrency() + reward,
+            ownedSkins: Array.from(new Set(["classic", ...(this.save.ownedSkins || [])])),
+            equippedSkin: this.save.equippedSkin || "classic",
             lastOutcome: success ? "contained" : "lost",
             lastRunAt: new Date().toISOString(),
           };
           this.save = Object.assign({}, this.save, payload);
           StorageBridge.save(payload);
+          this.renderSkinShop();
         }
 
         resize() {
