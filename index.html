@@ -862,6 +862,11 @@
     }
 
     .accountGrid {
+      display: none;
+      margin-top: 10px;
+    }
+
+    #accountPanel.account-open .accountGrid {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 10px;
@@ -891,6 +896,14 @@
       letter-spacing: 0.12em;
     }
 
+    .accountAuthAction {
+      display: none;
+    }
+
+    #accountPanel.account-open .accountAuthAction {
+      display: inline-block;
+    }
+
     #walletRow {
       display: flex;
       justify-content: space-between;
@@ -903,13 +916,17 @@
     }
 
     #skinShop {
+      display: none;
+    }
+
+    #shopPanel.open #skinShop {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 8px;
       margin-top: 10px;
     }
 
-    .skinButton {
+    .shopButton {
       min-width: 0;
       padding: 10px;
       font-size: 11px;
@@ -919,9 +936,17 @@
       border-color: rgba(255, 130, 130, 0.24);
     }
 
-    .skinButton.active {
+    .shopButton.active {
       border-color: rgba(255, 220, 170, 0.66);
       box-shadow: 0 0 18px rgba(255, 190, 120, 0.18);
+    }
+
+    #openShopButton {
+      margin-top: 10px;
+      width: 100%;
+      padding: 11px 14px;
+      font-size: 12px;
+      letter-spacing: 0.12em;
     }
 
     .drawerPanel {
@@ -1252,7 +1277,7 @@
       line-height: 1.45;
     }
 
-    body[data-screen="mobile"] .accountGrid {
+    body[data-screen="mobile"] #accountPanel.account-open .accountGrid {
       grid-template-columns: 1fr;
       gap: 8px;
     }
@@ -1263,7 +1288,7 @@
       gap: 8px;
     }
 
-    body[data-screen="mobile"] #skinShop {
+    body[data-screen="mobile"] #shopPanel.open #skinShop {
       grid-template-columns: 1fr;
     }
 
@@ -1288,6 +1313,37 @@
 
     body.reduced-effects canvas {
       filter: none !important;
+    }
+
+    #tutorialOverlay {
+      position: absolute;
+      left: 50%;
+      top: calc(72px + var(--safe-top));
+      transform: translateX(-50%);
+      z-index: 9;
+      display: none;
+      width: min(520px, calc(100% - 28px));
+      padding: 12px 14px;
+      text-align: center;
+      pointer-events: none;
+    }
+
+    #tutorialOverlay.visible {
+      display: block;
+    }
+
+    #tutorialOverlayTitle {
+      font-size: 12px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: #f3d7d7;
+      margin-bottom: 6px;
+    }
+
+    #tutorialOverlayText {
+      color: #ead8d2;
+      font-size: 13px;
+      line-height: 1.4;
     }
 
     body[data-screen="mobile"] .menuGrid {
@@ -1361,6 +1417,10 @@
   <div id="overlay">
     <div id="crosshair"><span></span></div>
     <div id="capturePrompt" class="panel"></div>
+    <div id="tutorialOverlay" class="panel">
+      <div id="tutorialOverlayTitle">Tutorial</div>
+      <div id="tutorialOverlayText"></div>
+    </div>
     <div id="glitchOverlay"></div>
     <div id="vignette"></div>
     <div id="flashOverlay"></div>
@@ -1490,7 +1550,7 @@
             If the box fails, escapes return worse than before. You are not just hunting entities. You are trying to stop something spreading, something learning, before there is nothing left to contain and nothing left to protect.
           </div>
           <div class="menuBox">
-            Accounts are optional. Sign in to sync progress across devices, or keep playing as a guest with progress saved on this device.
+            Accounts are optional. Sign in to save progress across devices, or play as a guest for a no-save session.
           </div>
         </div>
         <div class="buttonRow">
@@ -1529,7 +1589,7 @@
               Tutorial hints
             </label>
           </div>
-          <button id="tutorialButton" type="button">Open Tutorial</button>
+          <button id="tutorialButton" type="button">Start Tutorial</button>
           <div id="tutorialPanel" class="drawerPanel">
             <div class="drawerTitle">Tutorial</div>
             <div id="tutorialText"></div>
@@ -1543,22 +1603,26 @@
         </div>
         <div id="accountPanel">
           <div id="accountTitle">Account</div>
-          <div id="accountStatus">Guest play is active. Your progress saves on this device.</div>
+          <div id="accountStatus">You are playing as a guest. Progress will not be saved.</div>
           <div class="accountGrid">
-            <input id="accountEmail" class="accountInput" type="email" inputmode="email" autocomplete="email" placeholder="Email" />
+            <input id="accountEmail" class="accountInput" type="email" inputmode="email" autocomplete="email" placeholder="Username or email" />
             <input id="accountPassword" class="accountInput" type="password" autocomplete="current-password" placeholder="Password" />
           </div>
           <div id="accountActions">
             <button id="accountSignIn" type="button">Sign In</button>
-            <button id="accountCreate" type="button">Create Account</button>
-            <button id="accountGuest" type="button">Play As Guest</button>
+            <button id="accountCreate" class="accountAuthAction" type="button">Make Account</button>
+            <button id="accountGuest" class="accountAuthAction" type="button">Cancel</button>
             <button id="accountSignOut" type="button">Sign Out</button>
           </div>
           <div id="walletRow">
             <span>Currency</span>
             <strong id="currencyValue">0 shards</strong>
           </div>
-          <div id="skinShop"></div>
+          <button id="openShopButton" type="button">Shop</button>
+          <div id="shopPanel" class="drawerPanel">
+            <div class="drawerTitle">Shop</div>
+            <div id="skinShop"></div>
+          </div>
         </div>
         <div id="browserPrompt" class="panel">
           <div id="browserPromptTitle">Browser Recommended</div>
@@ -1580,8 +1644,8 @@
       const FOV = Math.PI / 1.55;
       const WORLD_SIZE = 19;
       const ENTITY_COUNT = 10;
-      const MAX_CAPTURE_RANGE = 3;
-      const PLAYER_RADIUS = 0.2;
+      const MAX_CAPTURE_RANGE = 4;
+      const PLAYER_RADIUS = 0.14;
       const SAVE_KEY = "disgrace-save-v1";
       const LOOK_PITCH_SCALE = 0.34;
       const PLAYER_MAX_STAMINA = 130;
@@ -1682,10 +1746,40 @@
       ];
 
       const SKIN_LIBRARY = [
-        { id: "classic", name: "Classic", cost: 0, glyph: "▣" },
-        { id: "ashen", name: "Ashen", cost: 60, glyph: "◇" },
-        { id: "verdant", name: "Verdant", cost: 90, glyph: "✥" },
-        { id: "violet", name: "Violet", cost: 130, glyph: "◆" },
+        { id: "classic", type: "box", name: "Classic Box", cost: 0, glyph: "▣" },
+        { id: "ashen", type: "box", name: "Ashen Box", cost: 60, glyph: "◇" },
+        { id: "verdant", type: "box", name: "Verdant Box", cost: 90, glyph: "✥" },
+        { id: "violet", type: "box", name: "Violet Box", cost: 130, glyph: "◆" },
+      ];
+
+      const OUTFIT_LIBRARY = [
+        {
+          id: "operator",
+          type: "outfit",
+          name: "Operator Clothes",
+          cost: 0,
+          arm: { front: "#2f3747", side: "#232a38" },
+          leg: { front: "#324665", side: "#26364f" },
+          torso: "rgba(56, 72, 98, 0.92)",
+        },
+        {
+          id: "field",
+          type: "outfit",
+          name: "Field Jacket",
+          cost: 80,
+          arm: { front: "#355342", side: "#263b31" },
+          leg: { front: "#2f4a3d", side: "#23372e" },
+          torso: "rgba(52, 91, 70, 0.94)",
+        },
+        {
+          id: "nocturne",
+          type: "outfit",
+          name: "Nocturne Coat",
+          cost: 120,
+          arm: { front: "#2b2a43", side: "#1e1d32" },
+          leg: { front: "#343052", side: "#25223d" },
+          torso: "rgba(48, 42, 82, 0.94)",
+        },
       ];
 
       function entitySeen(game, id) {
@@ -1868,6 +1962,8 @@
         clueList: document.getElementById("clueList"),
         messagePanel: document.getElementById("messagePanel"),
         capturePrompt: document.getElementById("capturePrompt"),
+        tutorialOverlay: document.getElementById("tutorialOverlay"),
+        tutorialOverlayText: document.getElementById("tutorialOverlayText"),
         glitchOverlay: document.getElementById("glitchOverlay"),
         boxWidget: document.getElementById("boxWidget"),
         boxStateText: document.getElementById("boxStateText"),
@@ -1914,6 +2010,8 @@
         accountGuest: document.getElementById("accountGuest"),
         accountSignOut: document.getElementById("accountSignOut"),
         currencyValue: document.getElementById("currencyValue"),
+        openShopButton: document.getElementById("openShopButton"),
+        shopPanel: document.getElementById("shopPanel"),
         skinShop: document.getElementById("skinShop"),
         devCheatButton: document.getElementById("devCheatButton"),
         devCodeModal: document.getElementById("devCodeModal"),
@@ -2162,6 +2260,8 @@
         merged.currency = Math.max(base?.currency || 0, incoming?.currency || 0);
         merged.ownedSkins = Array.from(new Set(["classic", ...(base?.ownedSkins || []), ...(incoming?.ownedSkins || [])]));
         merged.equippedSkin = incoming?.equippedSkin || base?.equippedSkin || "classic";
+        merged.ownedOutfits = Array.from(new Set(["operator", ...(base?.ownedOutfits || []), ...(incoming?.ownedOutfits || [])]));
+        merged.equippedOutfit = incoming?.equippedOutfit || base?.equippedOutfit || "operator";
         merged.settings = Object.assign({}, base?.settings || {}, incoming?.settings || {});
         return merged;
       }
@@ -2183,13 +2283,17 @@
         isConfigured() {
           return this.hasValidConfig(window.__DISGRACE_FIREBASE_CONFIG);
         },
+        isSignedIn() {
+          return this.accountMode === "account" && !!this.user && !this.user.isAnonymous;
+        },
         accountLabel() {
           if (this.accountMode === "account" && this.user?.email) return "Account: " + this.user.email;
-          if (this.firebase && this.user?.isAnonymous) return "Guest cloud sync";
-          return "Guest on this device";
+          return "Guest session";
         },
         enterLocalMode(reason) {
           this.firebase = null;
+          this.user = null;
+          this.accountMode = "guest";
           this.mode = this.localMode;
           if (reason) {
             console.warn("Remote sync disabled, continuing locally.", reason);
@@ -2251,8 +2355,8 @@
 
           this.firebase = { uid: user.uid, firestoreDoc, realtimeRef };
           await this.mergeRemoteSave();
-          this.accountMode = user.isAnonymous ? "guest" : "account";
-          this.mode = (user.isAnonymous ? "Guest cloud + " : "Account cloud + ") + this.localMode;
+          this.accountMode = "account";
+          this.mode = "Account cloud + " + this.localMode;
           await this.save({
             accountEmail: user.email || null,
             lastAccountMode: this.accountMode,
@@ -2286,20 +2390,8 @@
           return this.cache;
         },
         async init() {
-          this.cache = this.readLocal();
-          if (!this.isConfigured()) {
-            this.ready = true;
-            return this.cache;
-          }
-
-          try {
-            const auth = await this.ensureFirebaseLoaded();
-            await withTimeout(auth.signInAnonymously(), FIREBASE_SYNC_TIMEOUT, "Firebase auth");
-            await this.setupRemoteForUser(auth.currentUser || { uid: "anonymous", isAnonymous: true });
-          } catch (error) {
-            this.enterLocalMode(error);
-          }
-
+          this.cache = {};
+          this.enterLocalMode();
           this.ready = true;
           return this.cache;
         },
@@ -2313,7 +2405,9 @@
           }
         },
         async save(payload) {
+          if (!this.isSignedIn()) return;
           this.cache = Object.assign({}, this.cache || {}, payload || {});
+
           try {
             PERSISTENT_STORE.store.setItem(SAVE_KEY, JSON.stringify(this.cache));
           } catch (error) {
@@ -2366,21 +2460,17 @@
         },
         async useGuest() {
           this.accountMode = "guest";
-          if (!this.isConfigured()) {
-            this.enterLocalMode();
-            return this.cache;
-          }
+          this.cache = {};
           try {
-            const auth = await this.ensureFirebaseLoaded();
-            if (!auth.currentUser || !auth.currentUser.isAnonymous) {
+            const auth = this.auth || (this.isConfigured() ? await this.ensureFirebaseLoaded() : null);
+            if (auth && auth.currentUser) {
               await withTimeout(auth.signOut(), FIREBASE_SYNC_TIMEOUT, "Account sign out");
-              await withTimeout(auth.signInAnonymously(), FIREBASE_SYNC_TIMEOUT, "Guest sign in");
             }
-            return this.setupRemoteForUser(auth.currentUser || { uid: "anonymous", isAnonymous: true });
           } catch (error) {
-            this.enterLocalMode(error);
-            return this.cache;
+            console.warn("Account sign out failed, continuing as guest.", error);
           }
+          this.enterLocalMode();
+          return this.cache;
         },
       };
 
@@ -2736,6 +2826,8 @@
             currency: 0,
             ownedSkins: ["classic"],
             equippedSkin: "classic",
+            ownedOutfits: ["operator"],
+            equippedOutfit: "operator",
             settings: {
               lookSensitivity: 100,
               audioVolume: 100,
@@ -2774,6 +2866,11 @@
           this.lastHudRenderAt = -999;
           this.settingsPanelOpen = false;
           this.tutorialPanelOpen = false;
+          this.accountMenuOpen = false;
+          this.shopOpen = false;
+          this.tutorialMode = false;
+          this.tutorialRunStep = 0;
+          this.tutorialRunTimer = 0;
           this.tutorialStep = 0;
           this.viewMode = "first";
           this.viewState = null;
@@ -2817,7 +2914,7 @@
             this.toggleSettingsPanel();
           });
           HUD.tutorialButton.addEventListener("click", () => {
-            this.toggleTutorialPanel();
+            this.startTutorialRun();
           });
           HUD.tutorialPrev.addEventListener("click", () => {
             this.setTutorialStep(this.tutorialStep - 1);
@@ -2888,6 +2985,10 @@
             await this.shareCurrentLink();
           });
           HUD.accountSignIn.addEventListener("click", async () => {
+            if (!this.accountMenuOpen) {
+              this.toggleAccountMenu(true);
+              return;
+            }
             await this.handleAccountAction("signIn");
           });
           HUD.accountCreate.addEventListener("click", async () => {
@@ -2898,6 +2999,9 @@
           });
           HUD.accountSignOut.addEventListener("click", async () => {
             await this.handleAccountAction("guest");
+          });
+          HUD.openShopButton.addEventListener("click", () => {
+            this.toggleShop();
           });
           this.updateBrowserPrompt();
           this.setupTouchControls();
@@ -3006,8 +3110,8 @@
             },
             {
               title: "Progress",
-              text: "Captures grant powers and shards. Shards buy Red Box skins in the account panel, and guest progress still saves on this device.",
-              tip: "A clean run earns more shards and keeps the box stable longer.",
+              text: "Captures grant powers and shards during the session. Sign into an account before playing if you want progress, shards, and skins saved.",
+              tip: "Guest mode is for practice. Account mode is for permanent progress.",
             },
           ];
         }
@@ -3030,20 +3134,38 @@
           this.updateAccountUi(step.tip);
         }
 
+        toggleAccountMenu(open = !this.accountMenuOpen) {
+          this.accountMenuOpen = !!open;
+          HUD.accountEmail.value = this.accountMenuOpen ? HUD.accountEmail.value : "";
+          HUD.accountPassword.value = "";
+          HUD.accountSignIn.textContent = this.accountMenuOpen ? "Submit Sign In" : "Sign In";
+          HUD.accountGuest.textContent = "Cancel";
+          HUD.accountStatus.textContent = this.accountMenuOpen
+            ? "Enter your username/email and password. Use Make Account if you do not have one yet."
+            : "You are playing as a guest. Progress will not be saved.";
+          HUD.accountStatus.closest("#accountPanel").classList.toggle("account-open", this.accountMenuOpen);
+        }
+
         updateAccountUi(message = "") {
           const configured = StorageBridge.isConfigured();
           const label = StorageBridge.accountLabel();
           const helper = configured
-            ? " Sign in to sync this save across devices, or keep playing as a guest."
-            : " Online accounts are not enabled yet. Guest play still saves here.";
+            ? " Sign in to save progress, or keep playing as a guest without saving."
+            : " Online accounts are not enabled yet. Guest progress will not be saved.";
           HUD.accountStatus.textContent = message || (label + "." + helper);
-          HUD.accountSignIn.disabled = !configured;
-          HUD.accountCreate.disabled = !configured;
+          HUD.accountSignIn.disabled = false;
+          HUD.accountCreate.disabled = false;
           HUD.accountSignOut.disabled = StorageBridge.accountMode !== "account";
+          if (StorageBridge.accountMode === "account") {
+            this.accountMenuOpen = false;
+            HUD.accountStatus.closest("#accountPanel").classList.remove("account-open");
+            HUD.accountSignIn.textContent = "Sign In";
+          }
         }
 
         async handleAccountAction(action) {
-          const email = HUD.accountEmail.value.trim();
+          const login = HUD.accountEmail.value.trim();
+          const email = this.normalizeAccountLogin(login);
           const password = HUD.accountPassword.value;
           try {
             if (action === "guest") {
@@ -3053,14 +3175,15 @@
               this.syncSettingsUi();
               this.applySettings();
               HUD.accountPassword.value = "";
-              this.updateAccountUi("Guest play is active. Your progress still saves on this device.");
+              this.toggleAccountMenu(false);
+              this.updateAccountUi("You are playing as a guest. Progress will not be saved.");
               HUD.storageValue.textContent = StorageBridge.mode;
               this.renderSkinShop();
               return;
             }
 
             if (!email || !password) {
-              this.updateAccountUi("Enter an email and password, or keep playing as a guest.");
+              this.updateAccountUi("Enter a username/email and password, or press Cancel to stay as guest.");
               return;
             }
 
@@ -3068,18 +3191,26 @@
             const cached = action === "create"
               ? await StorageBridge.createAccount(email, password)
               : await StorageBridge.signIn(email, password);
-            this.save = mergeSaveData(this.save, cached || {});
+            this.save = mergeSaveData({ settings: this.save.settings }, cached || {});
             this.normalizeSettings();
             this.syncSettingsUi();
             this.applySettings();
             HUD.accountPassword.value = "";
             HUD.storageValue.textContent = StorageBridge.mode;
-            this.updateAccountUi("Signed in as " + (StorageBridge.user?.email || email) + ". This device save is linked.");
+            this.updateAccountUi("Signed in as " + login + ". This device save is linked.");
             this.renderSkinShop();
           } catch (error) {
             const text = error?.message || "Account action failed.";
             this.updateAccountUi(text + " Guest play is still available.");
           }
+        }
+
+        normalizeAccountLogin(value) {
+          const trimmed = value.trim().toLowerCase();
+          if (!trimmed) return "";
+          if (trimmed.includes("@")) return trimmed;
+          const username = trimmed.replace(/[^a-z0-9._-]/g, "");
+          return username ? username + "@disgrace.local" : "";
         }
 
         getCurrency() {
@@ -3091,46 +3222,64 @@
           if (!SKIN_LIBRARY.some((skin) => skin.id === this.save.equippedSkin)) {
             this.save.equippedSkin = "classic";
           }
+          this.save.ownedOutfits = Array.from(new Set(["operator", ...(this.save.ownedOutfits || [])]));
+          if (!OUTFIT_LIBRARY.some((outfit) => outfit.id === this.save.equippedOutfit)) {
+            this.save.equippedOutfit = "operator";
+          }
         }
 
         renderSkinShop() {
           this.normalizeSkins();
           HUD.currencyValue.textContent = this.getCurrency() + " shards";
           HUD.skinShop.innerHTML = "";
-          for (const skin of SKIN_LIBRARY) {
-            const owned = this.save.ownedSkins.includes(skin.id);
-            const equipped = this.save.equippedSkin === skin.id;
+          for (const item of [...SKIN_LIBRARY, ...OUTFIT_LIBRARY]) {
+            const isOutfit = item.type === "outfit";
+            const owned = isOutfit ? this.save.ownedOutfits.includes(item.id) : this.save.ownedSkins.includes(item.id);
+            const equipped = isOutfit ? this.save.equippedOutfit === item.id : this.save.equippedSkin === item.id;
             const button = document.createElement("button");
             button.type = "button";
-            button.className = "skinButton" + (equipped ? " active" : "");
-            button.textContent = skin.name + " - " + (equipped ? "Equipped" : owned ? "Equip" : skin.cost + " shards");
-            button.addEventListener("click", () => this.selectSkin(skin.id));
+            button.className = "shopButton" + (equipped ? " active" : "");
+            button.textContent = item.name + " - " + (equipped ? "Equipped" : owned ? "Equip" : item.cost + " shards");
+            button.addEventListener("click", () => this.selectShopItem(item.id, item.type));
             HUD.skinShop.appendChild(button);
           }
           this.applyEquippedSkin();
         }
 
-        selectSkin(id) {
+        selectShopItem(id, type = "box") {
           this.normalizeSkins();
-          const skin = SKIN_LIBRARY.find((item) => item.id === id);
-          if (!skin) return;
-          const owned = this.save.ownedSkins.includes(id);
+          const library = type === "outfit" ? OUTFIT_LIBRARY : SKIN_LIBRARY;
+          const item = library.find((entry) => entry.id === id);
+          if (!item) return;
+          const ownedList = type === "outfit" ? this.save.ownedOutfits : this.save.ownedSkins;
+          const owned = ownedList.includes(id);
           if (!owned) {
-            if (this.getCurrency() < skin.cost) {
-              this.updateAccountUi("Not enough shards for " + skin.name + ".");
+            if (this.getCurrency() < item.cost) {
+              this.updateAccountUi("Not enough shards for " + item.name + ".");
               return;
             }
-            this.save.currency = this.getCurrency() - skin.cost;
-            this.save.ownedSkins = Array.from(new Set([...this.save.ownedSkins, id]));
+            this.save.currency = this.getCurrency() - item.cost;
+            if (type === "outfit") this.save.ownedOutfits = Array.from(new Set([...this.save.ownedOutfits, id]));
+            else this.save.ownedSkins = Array.from(new Set([...this.save.ownedSkins, id]));
           }
-          this.save.equippedSkin = id;
+          if (type === "outfit") this.save.equippedOutfit = id;
+          else this.save.equippedSkin = id;
           StorageBridge.save({
             currency: this.save.currency,
             ownedSkins: this.save.ownedSkins,
             equippedSkin: this.save.equippedSkin,
+            ownedOutfits: this.save.ownedOutfits,
+            equippedOutfit: this.save.equippedOutfit,
           });
           this.renderSkinShop();
-          this.updateAccountUi((owned ? "Equipped " : "Unlocked and equipped ") + skin.name + ".");
+          this.updateAccountUi((owned ? "Equipped " : "Unlocked and equipped ") + item.name + ".");
+        }
+
+        toggleShop(open = !this.shopOpen) {
+          this.shopOpen = !!open;
+          HUD.shopPanel.classList.toggle("open", this.shopOpen);
+          HUD.openShopButton.textContent = this.shopOpen ? "Close Shop" : "Shop";
+          if (this.shopOpen) this.renderSkinShop();
         }
 
         applyEquippedSkin() {
@@ -3139,6 +3288,11 @@
           HUD.boxWidget.dataset.skin = skin.id;
           const glyph = document.getElementById("boxGlyph");
           if (glyph) glyph.textContent = skin.glyph;
+        }
+
+        getEquippedOutfit() {
+          this.normalizeSkins();
+          return OUTFIT_LIBRARY.find((item) => item.id === this.save.equippedOutfit) || OUTFIT_LIBRARY[0];
         }
 
         async start() {
@@ -3156,6 +3310,42 @@
             : "The containment field wakes with you.";
           this.messageTimer = 5;
           requestAnimationFrame((time) => this.frame(time));
+        }
+
+        async startTutorialRun() {
+          await this.enterFullscreen();
+          HUD.menu.classList.add("hidden");
+          await this.audio.start();
+          this.applySettings();
+          this.resetRun();
+          this.tutorialMode = true;
+          this.tutorialRunStep = 0;
+          this.tutorialRunTimer = 0;
+          this.viewMode = "first";
+          this.running = true;
+          this.gameOver = false;
+          this.spawnTutorialEntity();
+          this.updateTutorialOverlay();
+          this.updateTouchUi();
+          requestAnimationFrame((time) => this.frame(time));
+        }
+
+        spawnTutorialEntity() {
+          const entity = this.entities[0];
+          if (!entity) return;
+          entity.x = this.player.x;
+          entity.y = this.player.y + 2.4;
+          entity.dir = Math.PI;
+          entity.active = true;
+          entity.captured = false;
+          entity.escaped = false;
+          entity.visible = true;
+          this.activeEntities = [entity];
+          for (const other of this.entities.slice(1)) {
+            other.active = false;
+            other.captured = false;
+            other.escaped = false;
+          }
         }
 
         async enterFullscreen() {
@@ -3871,10 +4061,11 @@
 
         collides(x, y) {
           const points = [
-            { x: x - PLAYER_RADIUS, y: y - PLAYER_RADIUS },
-            { x: x + PLAYER_RADIUS, y: y - PLAYER_RADIUS },
-            { x: x - PLAYER_RADIUS, y: y + PLAYER_RADIUS },
-            { x: x + PLAYER_RADIUS, y: y + PLAYER_RADIUS },
+            { x, y },
+            { x: x - PLAYER_RADIUS, y },
+            { x: x + PLAYER_RADIUS, y },
+            { x, y: y - PLAYER_RADIUS },
+            { x, y: y + PLAYER_RADIUS },
           ];
           return points.some((point) => this.isWall(point.x, point.y));
         }
@@ -3910,8 +4101,9 @@
         frame(timestamp) {
           if (!this.running) return;
           if (!this.lastFrame) this.lastFrame = timestamp;
-          const dt = Math.min(0.033, (timestamp - this.lastFrame) / 1000 || 0.016);
+          let dt = Math.min(0.033, (timestamp - this.lastFrame) / 1000 || 0.016);
           this.lastFrame = timestamp;
+          if (this.tutorialMode) dt *= 0.42;
 
           if (!this.gameOver) {
             this.update(dt);
@@ -3925,6 +4117,7 @@
 
         update(dt) {
           this.time += dt;
+          if (this.tutorialMode) this.updateTutorialRun(dt);
           if (this.messageTimer > 0) this.messageTimer -= dt;
           if (this.flashTimer > 0) this.flashTimer -= dt;
           this.player.hitCooldown = Math.max(0, this.player.hitCooldown - dt);
@@ -3932,11 +4125,13 @@
           this.player.slideCooldown = Math.max(0, this.player.slideCooldown - dt);
           this.player.slideTimer = Math.max(0, this.player.slideTimer - dt);
           this.player.sliding = this.player.slideTimer > 0;
-          this.syncActiveEntities();
+          if (!this.tutorialMode) this.syncActiveEntities();
 
           this.updatePlayer(dt);
-          this.updateEntities(dt);
-          this.updateContainment(dt);
+          if (!this.tutorialMode) {
+            this.updateEntities(dt);
+            this.updateContainment(dt);
+          }
           this.updateEffects(dt);
           this.updatePickups(dt);
           this.updateClues();
@@ -3951,8 +4146,57 @@
           }
 
           if (this.entities.every((entity) => entity.captured) && !this.box.broken) {
+            if (this.tutorialMode) {
+              this.advanceTutorialRun();
+              return;
+            }
             this.finishRun("All entities contained. The box still shakes.");
           }
+        }
+
+        updateTutorialRun(dt) {
+          this.tutorialRunTimer += dt;
+          const target = this.activeEntities[0];
+          if (target && !target.captured) {
+            const desiredX = this.player.x + Math.sin(this.player.angle) * 2.25;
+            const desiredY = this.player.y + Math.cos(this.player.angle) * 2.25;
+            if (!this.isWall(desiredX, desiredY)) {
+              target.x = lerp(target.x, desiredX, dt * 1.5);
+              target.y = lerp(target.y, desiredY, dt * 1.5);
+            }
+          }
+          if (this.tutorialRunStep === 0 && this.tutorialRunTimer > 3) this.advanceTutorialRun();
+          if (this.tutorialRunStep === 1 && this.tutorialRunTimer > 6) this.advanceTutorialRun();
+          if (this.tutorialRunStep === 2 && target?.captured) this.advanceTutorialRun();
+          if (this.tutorialRunStep >= 3 && this.tutorialRunTimer > 4) this.finishTutorialRun();
+        }
+
+        advanceTutorialRun() {
+          this.tutorialRunStep = Math.min(this.tutorialRunStep + 1, 3);
+          this.tutorialRunTimer = 0;
+          this.updateTutorialOverlay();
+        }
+
+        updateTutorialOverlay() {
+          const prompts = [
+            "Move with W/A/S/D or the left pad. The yellow arrow points forward.",
+            "Follow the compass. The anomaly is held close and the game is slowed down.",
+            "Get close, aim at the body, then press E or Capture.",
+            "Tutorial complete. You are returning to the home page.",
+          ];
+          HUD.tutorialOverlayText.textContent = prompts[this.tutorialRunStep] || prompts[0];
+          HUD.tutorialOverlay.classList.add("visible");
+        }
+
+        finishTutorialRun() {
+          this.tutorialMode = false;
+          HUD.tutorialOverlay.classList.remove("visible");
+          this.running = false;
+          this.gameOver = false;
+          this.resetTouchInput();
+          HUD.menu.classList.remove("hidden");
+          this.resetRun();
+          this.drawSplash();
         }
 
         updateClues() {
@@ -4451,13 +4695,13 @@
 
             let allowed = true;
             if (entity.id === "silhouette") {
-              allowed = Math.abs(projection.angle) > 0.16 && Math.abs(projection.angle) < 0.58;
+              allowed = Math.abs(projection.angle) > 0.1 && Math.abs(projection.angle) < 0.7;
             } else if (entity.id === "velour") {
-              allowed = Math.abs(projection.angle) < 0.14;
+              allowed = Math.abs(projection.angle) < 0.22;
             } else if (entity.id === "crescent") {
               allowed = entity.visible;
             } else {
-              allowed = Math.abs(projection.angle) < 0.2;
+              allowed = Math.abs(projection.angle) < 0.34;
             }
 
             const crosshairInside =
@@ -4503,13 +4747,13 @@
 
             let allowed = true;
             if (entity.id === "silhouette") {
-              allowed = Math.abs(projection.angle) > 0.08 && Math.abs(projection.angle) < 0.72;
+              allowed = Math.abs(projection.angle) > 0.04 && Math.abs(projection.angle) < 0.9;
             } else if (entity.id === "velour") {
-              allowed = Math.abs(projection.angle) < 0.26;
+              allowed = Math.abs(projection.angle) < 0.38;
             } else if (entity.id === "crescent") {
               allowed = entity.visible;
             } else {
-              allowed = Math.abs(projection.angle) < 0.42;
+              allowed = Math.abs(projection.angle) < 0.58;
             }
             if (!allowed) continue;
 
@@ -4544,31 +4788,31 @@
             return;
           }
 
-          if (target.id === "vespers" && target.pauseTimer <= 0 && !this.hasPower("vespers")) {
+          if (target.id === "vespers" && target.pauseTimer <= 0 && !this.hasPower("vespers") && !this.tutorialMode) {
             this.noteMistake(0.18, "Vespers rejects haste.");
             return;
           }
-          if (target.id === "nocturne" && this.lightAt(this.player.x, this.player.y) < 0.35 && !this.hasPower("nocturne")) {
+          if (target.id === "nocturne" && this.lightAt(this.player.x, this.player.y) < 0.35 && !this.hasPower("nocturne") && !this.tutorialMode) {
             this.noteMistake(0.2, "Nocturne outpaces your hands in darkness. Drag it into light.");
             return;
           }
-          if (target.id === "penance" && this.stats.mistakes >= 6 && !this.hasPower("penance")) {
+          if (target.id === "penance" && this.stats.mistakes >= 6 && !this.hasPower("penance") && !this.tutorialMode) {
             this.noteMistake(0.16, "Penance has been fed too well. Move cleanly before binding it.");
             return;
           }
-          if (target.id === "obsidian" && target.chaseTimer > 1.1 && !this.hasPower("obsidian")) {
+          if (target.id === "obsidian" && target.chaseTimer > 1.1 && !this.hasPower("obsidian") && !this.tutorialMode) {
             this.hazards.push({ x: target.x, y: target.y, radius: 0.72, ttl: 10 });
             this.noteMistake(0.22, "Obsidian punishes the direct chase. Cut an angle instead.");
             return;
           }
           if (target.id === "relic" && !this.hasPower("relic")) {
             const node = target.nodes[target.nodeIndex];
-            if (Math.hypot(target.x - node.x, target.y - node.y) > 0.25) {
+            if (Math.hypot(target.x - node.x, target.y - node.y) > 0.25 && !this.tutorialMode) {
               this.noteMistake(0.18, "Relic slips the route. Intercept a node instead of lunging.");
               return;
             }
           }
-          if (target.id === "crescent" && !target.visible) {
+          if (target.id === "crescent" && !target.visible && !this.tutorialMode) {
             this.noteMistake(0.14, "Crescent is between phases.");
             return;
           }
@@ -4578,8 +4822,12 @@
           target.escaped = false;
           this.stats.captures += 1;
           this.box.stability -= 8 + this.stats.captures * 1.45;
-          this.save.currency = this.getCurrency() + CAPTURE_REWARD;
-          this.pushMessage(target.name + " is contained. Power granted: " + target.power + ". +" + CAPTURE_REWARD + " shards.");
+          if (this.tutorialMode) {
+            this.pushMessage(target.name + " is contained. Tutorial capture complete.");
+          } else {
+            this.save.currency = this.getCurrency() + CAPTURE_REWARD;
+            this.pushMessage(target.name + " is contained. Power granted: " + target.power + ". +" + CAPTURE_REWARD + " shards.");
+          }
           this.audio.pulseEvent(480, 0.22, 0.09, "sine");
           this.flashTimer = 0.2;
           HUD.flashOverlay.style.opacity = "0.55";
@@ -4587,17 +4835,19 @@
             HUD.flashOverlay.style.opacity = "0";
           }, 90);
 
-          const progressPayload = {
-            bestCaptures: Math.max(this.save.bestCaptures || 0, this.stats.captures),
-            totalRuns: this.save.totalRuns || 0,
-            powersUnlocked: Array.from(new Set([...(this.save.powersUnlocked || []), target.id])),
-            seenEntities: Array.from(new Set([...(this.save.seenEntities || []), target.id])),
-            currency: this.save.currency,
-          };
-          this.save = Object.assign({}, this.save, progressPayload);
-          StorageBridge.save(progressPayload);
-          this.renderSkinShop();
-          this.syncActiveEntities();
+          if (!this.tutorialMode) {
+            const progressPayload = {
+              bestCaptures: Math.max(this.save.bestCaptures || 0, this.stats.captures),
+              totalRuns: this.save.totalRuns || 0,
+              powersUnlocked: Array.from(new Set([...(this.save.powersUnlocked || []), target.id])),
+              seenEntities: Array.from(new Set([...(this.save.seenEntities || []), target.id])),
+              currency: this.save.currency,
+            };
+            this.save = Object.assign({}, this.save, progressPayload);
+            StorageBridge.save(progressPayload);
+            this.renderSkinShop();
+            this.syncActiveEntities();
+          }
         }
 
         attemptShove() {
@@ -4952,9 +5202,9 @@
           const radius = this.getEntityCollisionRadius(entity);
           return {
             radius,
-            halfWidth: projection.spriteWidth * 0.5,
-            top: projection.top,
-            bottom: projection.bottom,
+            halfWidth: projection.spriteWidth * 0.72,
+            top: projection.top - projection.spriteHeight * 0.12,
+            bottom: projection.bottom + projection.spriteHeight * 0.16,
           };
         }
 
@@ -5395,6 +5645,32 @@
           this.drawEntities(width, height, horizon, viewState);
           this.drawFirstPersonBody(width, height);
           this.drawPost(width, height, viewState);
+          this.drawTutorialGuides(width, height);
+        }
+
+        drawTutorialGuides(width, height) {
+          if (!this.tutorialMode) return;
+          ctx.save();
+          ctx.strokeStyle = "rgba(255, 210, 85, 0.92)";
+          ctx.fillStyle = "rgba(255, 210, 85, 0.92)";
+          ctx.lineWidth = 5;
+          ctx.beginPath();
+          if (this.tutorialRunStep < 2) {
+            ctx.moveTo(width * 0.5, height * 0.28);
+            ctx.lineTo(width * 0.5, height * 0.18);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(width * 0.5, height * 0.16);
+            ctx.lineTo(width * 0.46, height * 0.22);
+            ctx.lineTo(width * 0.54, height * 0.22);
+            ctx.closePath();
+            ctx.fill();
+          } else {
+            ctx.beginPath();
+            ctx.arc(width * 0.5, height * 0.5, 42 + Math.sin(this.time * 5) * 5, 0, TAU);
+            ctx.stroke();
+          }
+          ctx.restore();
         }
 
         drawWorldEffects(width, height, horizon, viewState = this.viewState || this.getViewState()) {
@@ -5599,12 +5875,13 @@
         }
 
         drawPlayerAvatar(width, height) {
+          const outfit = this.getEquippedOutfit();
           const sway = Math.sin(this.time * (this.player.sprinting ? 10 : 6)) * (this.player.sprinting ? 4 : 2);
           const baseX = width / 2;
           const baseY = height * 0.82 + sway;
           ctx.save();
           ctx.translate(baseX, baseY);
-          ctx.fillStyle = "rgba(8, 8, 12, 0.9)";
+          ctx.fillStyle = outfit.torso;
           ctx.beginPath();
           ctx.ellipse(0, 8, 22, 32, 0, 0, TAU);
           ctx.fill();
@@ -5619,6 +5896,7 @@
         }
 
         drawFirstPersonBody(width, height) {
+          const outfit = this.getEquippedOutfit();
           const strideThreshold = this.player.sprinting ? 0.72 : 0.5;
           const movePhase = strideThreshold > 0 ? (this.player.stepCycle / strideThreshold) * TAU : 0;
           const moving = this.player.stepCycle > 0.001 || this.player.sliding;
@@ -5669,15 +5947,15 @@
           };
 
           const armPalette = {
-            front: "#2f3747",
-            side: "#232a38",
+            front: outfit.arm.front,
+            side: outfit.arm.side,
             highlight: "rgba(255,255,255,0.08)",
             skin: "#f0c7a4",
             shoe: "#11151d",
           };
           const legPalette = {
-            front: "#324665",
-            side: "#26364f",
+            front: outfit.leg.front,
+            side: outfit.leg.side,
             highlight: "rgba(255,255,255,0.08)",
             skin: "#f0c7a4",
             shoe: "#181c24",
@@ -5729,7 +6007,7 @@
             false
           );
 
-          ctx.fillStyle = "rgba(56, 72, 98, 0.92)";
+          ctx.fillStyle = outfit.torso;
           ctx.fillRect(width * 0.44, torsoY - height * 0.02, width * 0.12, height * 0.09);
           ctx.fillStyle = "rgba(255,255,255,0.08)";
           ctx.fillRect(width * 0.458, torsoY - height * 0.008, width * 0.02, height * 0.055);
@@ -5972,6 +6250,8 @@
             currency: this.getCurrency() + reward,
             ownedSkins: Array.from(new Set(["classic", ...(this.save.ownedSkins || [])])),
             equippedSkin: this.save.equippedSkin || "classic",
+            ownedOutfits: Array.from(new Set(["operator", ...(this.save.ownedOutfits || [])])),
+            equippedOutfit: this.save.equippedOutfit || "operator",
             lastOutcome: success ? "contained" : "lost",
             lastRunAt: new Date().toISOString(),
           };
